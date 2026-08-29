@@ -1,6 +1,6 @@
 # Skills
 
-Eigene Skills für [Claude Code](https://claude.com/claude-code). Ein Skill ist eine Arbeitsanweisung in Markdown, die Claude bei passender Gelegenheit lädt — entweder automatisch, weil die Anfrage zur Beschreibung passt, oder ausdrücklich per `/name`.
+Eigene Skills für agentische Entwicklungswerkzeuge. Ein Skill ist eine Arbeitsanweisung in Markdown, die der Agent bei passender Gelegenheit lädt — entweder automatisch, weil die Anfrage zur Beschreibung passt, oder ausdrücklich per `/name`.
 
 Zwei Familien liegen hier: `news-*` erzeugt recherchierte Briefings, `plan-*` bearbeitet Feature-Pläne über ihren gesamten Lebenszyklus.
 
@@ -14,7 +14,7 @@ Zwei Familien liegen hier: `news-*` erzeugt recherchierte Briefings, `plan-*` be
 | `plan-lint` | `plan-lint` | `/plan-lint <plan>` | Räumt einen Plan auf: totes Wissen, Inkonsistenzen, Widersprüche |
 | `plan-coding` | `plan-implement` | `/plan-implement <plan> <schritt>` | Setzt genau einen Schritt des Plans um, inklusive Findings-Runden |
 
-Die News-Skills dürfen sich selbst aufrufen, wenn eine Anfrage zu ihrer Beschreibung passt. Die Plan-Skills tragen `disable-model-invocation: true` — sie laufen nur, wenn du sie ausdrücklich startest, weil sie fremde Dateien anfassen.
+Die News-Skills darf der Agent von selbst ziehen, wenn eine Anfrage zu ihrer Beschreibung passt. Die Plan-Skills tragen `disable-model-invocation: true` — sie laufen nur, wenn du sie ausdrücklich startest, weil sie fremde Dateien anfassen.
 
 ## Die Plan-Skills als Kette
 
@@ -46,7 +46,7 @@ Beide Skills haben Voreinstellungen (Sprache, Länge, Schwerpunkt) und je eine l
 
 ## Installation
 
-Die Skills werden per Symlink in `~/.claude/skills/` eingehängt, damit ein `git pull` sofort wirkt:
+Die Skills werden per Symlink in das Skill-Verzeichnis des Agenten eingehängt, damit ein `git pull` sofort wirkt. Die Pfade unten gelten für Claude Code; andere Agenten lesen aus einem eigenen Verzeichnis, der Rest bleibt gleich:
 
 ```bash
 for skill in news-nachrichtenlage news-wirtschafts-briefing plan-review plan-lint plan-coding
@@ -55,7 +55,7 @@ do
 done
 ```
 
-Für die Nutzung in einem einzelnen Projekt statt global: dasselbe nach `<projekt>/.claude/skills/`. Anschließend `claude` neu starten; `/help` listet die geladenen Skills.
+Für die Nutzung in einem einzelnen Projekt statt global: dasselbe nach `<projekt>/.claude/skills/`. Anschließend den Agenten neu starten; `/help` listet die geladenen Skills.
 
 ## Aufbau eines Skills
 
@@ -69,12 +69,12 @@ Für die Nutzung in einem einzelnen Projekt statt global: dasselbe nach `<projek
 Im Frontmatter steuern:
 
 - `name` — der Name, unter dem der Skill aufgerufen wird
-- `description` — entscheidet, ob Claude den Skill von selbst zieht; deshalb enthält sie bewusst viele Formulierungsvarianten der Anfrage
+- `description` — entscheidet, ob der Agent den Skill von selbst zieht; deshalb enthält sie bewusst viele Formulierungsvarianten der Anfrage
 - `allowed-tools` — Werkzeuge, auf die der Skill beschränkt bleibt
 - `disable-model-invocation` — `true` verhindert den automatischen Aufruf
 - `argument-hint` / `arguments` — benannte Argumente, im Text als `$plan`, `$schritt` verwendbar
 
-Die Dateien unter `references/` sind Auslagerungen der langen Listen — Prüfkriterien, Entwurfsdimensionen, Lint-Kategorien. Sie landen nur im Kontext, wenn der Skill sie über `${CLAUDE_SKILL_DIR}` tatsächlich liest. Das hält die `SKILL.md` lesbar und den Kontext klein.
+Die Dateien unter `references/` sind Auslagerungen der langen Listen — Prüfkriterien, Entwurfsdimensionen, Lint-Kategorien. Sie landen nur im Kontext, wenn der Skill sie über die Variable mit dem Skill-Verzeichnis (`${CLAUDE_SKILL_DIR}`) tatsächlich liest. Das hält die `SKILL.md` lesbar und den Kontext klein.
 
 ## Konventionen
 
