@@ -6,13 +6,15 @@ Zwei Familien liegen hier: `news-*` erzeugt recherchierte Briefings, `plan-*` be
 
 ## Übersicht
 
-| Verzeichnis | Skill-Name | Aufruf | Zweck |
-| --- | --- | --- | --- |
-| `news-nachrichtenlage` | `nachrichtenlage` | automatisch oder `/nachrichtenlage` | Nachrichten-Briefing aus Live-Recherche, das Gesichertes, Deutung und Unbestätigtes trennt |
-| `news-wirtschafts-briefing` | `wirtschafts-briefing` | automatisch oder `/wirtschafts-briefing` | Wirtschafts- und Finanzmarkt-Briefing: Marktbild, Leitthema, Konjunktur, Termine |
-| `plan-review` | `plan-review` | `/plan-review <plan>` | Prüft einen Plan gegen die reale Codebase, bevor jemand ihn umsetzt |
-| `plan-lint` | `plan-lint` | `/plan-lint <plan>` | Räumt einen Plan auf: totes Wissen, Inkonsistenzen, Widersprüche |
-| `plan-coding` | `plan-implement` | `/plan-implement <plan> <schritt>` | Setzt genau einen Schritt des Plans um, inklusive Findings-Runden |
+| Verzeichnis | Aufruf | Zweck |
+| --- | --- | --- |
+| `skills/news-nachrichtenlage` | automatisch oder `/news-nachrichtenlage` | Nachrichten-Briefing aus Live-Recherche, das Gesichertes, Deutung und Unbestätigtes trennt |
+| `skills/news-wirtschafts-briefing` | automatisch oder `/news-wirtschafts-briefing` | Wirtschafts- und Finanzmarkt-Briefing: Marktbild, Leitthema, Konjunktur, Termine |
+| `skills/plan-review` | `/plan-review <plan>` | Prüft einen Plan gegen die reale Codebase, bevor jemand ihn umsetzt |
+| `skills/plan-lint` | `/plan-lint <plan>` | Räumt einen Plan auf: totes Wissen, Inkonsistenzen, Widersprüche |
+| `skills/plan-coding` | `/plan-coding <plan> <schritt>` | Setzt genau einen Schritt des Plans um, inklusive Findings-Runden |
+
+Ein Skill heißt so wie sein Verzeichnis. Weil die Skills als Plugin `skills` geladen werden, lautet der volle Name `/skills:plan-review`; die Kurzform `/plan-review` funktioniert, solange kein anderes Plugin einen gleichnamigen Skill mitbringt.
 
 Die News-Skills darf der Agent von selbst ziehen, wenn eine Anfrage zu ihrer Beschreibung passt. Die Plan-Skills tragen `disable-model-invocation: true` — sie laufen nur, wenn du sie ausdrücklich startest, weil sie fremde Dateien anfassen.
 
@@ -25,7 +27,7 @@ Plan entsteht
      │
      ├─ /plan-review   → trägt der Plan gegen den echten Code?        → ## Review-Historie
      ├─ /plan-lint     → ist der Plan in sich widerspruchsfrei?       → ## Lint-Historie
-     └─ /plan-implement→ Schritt für Schritt umsetzen                 → ## Umsetzungs-Historie
+     └─ /plan-coding   → Schritt für Schritt umsetzen                 → ## Umsetzungs-Historie
 ```
 
 Die Reihenfolge ist keine Vorschrift. `/plan-lint` lohnt sich besonders, nachdem mehrere Schritte umgesetzt wurden und der Plan Aussagen über einen Zustand enthält, den es nicht mehr gibt. `/plan-review` lohnt sich vor der ersten Zeile Code — und noch einmal, wenn die Umsetzung den Plan spürbar verändert hat.
@@ -38,29 +40,45 @@ Die Historien-Abschnitte sind der Übergabepunkt zwischen den Läufen. Ohne sie 
 
 Beide erzeugen Fließtext im Chat, deutsch, ohne Datei — und beide haben denselben Kern: Nicht die Meldung ist der Wert, sondern ihre Einordnung.
 
-`nachrichtenlage` ordnet jede Aussage einer von drei Ebenen zu (gesichert / Deutung / unbestätigt) und arbeitet Quellen von unten nach oben ab: Primärquellen, Agenturen, deutsche Leitmedien über das Spektrum, internationale Presse, unabhängige Medien. Der eigentliche Mehrwert steckt im Abschnitt *Wo die Berichterstattung auseinandergeht* — dort wird benannt, ob eine Differenz auf Fakten, Gewichtung, Deutung oder Auslassung beruht.
+`news-nachrichtenlage` ordnet jede Aussage einer von drei Ebenen zu (gesichert / Deutung / unbestätigt) und arbeitet Quellen von unten nach oben ab: Primärquellen, Agenturen, deutsche Leitmedien über das Spektrum, internationale Presse, unabhängige Medien. Der eigentliche Mehrwert steckt im Abschnitt *Wo die Berichterstattung auseinandergeht* — dort wird benannt, ob eine Differenz auf Fakten, Gewichtung, Deutung oder Auslassung beruht.
 
-`wirtschafts-briefing` beginnt mit einem einzigen Überblicks-Abruf, der Kurse und redaktionelle Gewichtung zugleich liefert, vertieft daraus das Leitthema und prüft jede Zahl an der Primärquelle — mit besonderem Augenmerk auf den Bezugszeitraum, weil Suchergebnisse Monate munter mischen.
+`news-wirtschafts-briefing` beginnt mit einem einzigen Überblicks-Abruf, der Kurse und redaktionelle Gewichtung zugleich liefert, vertieft daraus das Leitthema und prüft jede Zahl an der Primärquelle — mit besonderem Augenmerk auf den Bezugszeitraum, weil Suchergebnisse Monate munter mischen.
 
-Beide Skills haben Voreinstellungen (Sprache, Länge, Schwerpunkt) und je eine leere Liste, die auf dich wartet: **Dauerthemen** in `nachrichtenlage`, **Watchlist** in `wirtschafts-briefing`. Wenn du eine Einstellung dauerhaft anders willst, ändere sie direkt in der `SKILL.md` — genau dafür stehen die Blöcke dort.
+Beide Skills haben Voreinstellungen (Sprache, Länge, Schwerpunkt) und je eine leere Liste, die auf dich wartet: **Dauerthemen** in `news-nachrichtenlage`, **Watchlist** in `news-wirtschafts-briefing`. Wenn du eine Einstellung dauerhaft anders willst, ändere sie direkt in der `SKILL.md` — genau dafür stehen die Blöcke dort.
 
 ## Installation
 
-Die Skills werden per Symlink in das Skill-Verzeichnis des Agenten eingehängt, damit ein `git pull` sofort wirkt. Die Pfade unten gelten für Claude Code; andere Agenten lesen aus einem eigenen Verzeichnis, der Rest bleibt gleich:
+Das Repo ist zugleich Plugin-Marketplace und Plugin: `.claude-plugin/marketplace.json` beschreibt den Marketplace, `.claude-plugin/plugin.json` das Plugin `skills`, und alles unter `skills/` ist ein Skill. Claude Code holt sich das Plugin direkt aus GitHub — kein Clone, kein `git pull`, kein Symlink pro Skill.
+
+Einmalig pro Rechner:
 
 ```bash
-for skill in news-nachrichtenlage news-wirtschafts-briefing plan-review plan-lint plan-coding
-do
-    ln -sfn "$PWD/$skill" ~/.claude/skills/"$skill"
-done
+claude plugin marketplace add der-audionaut/skills
+claude plugin install skills@der-audionaut
 ```
 
-Für die Nutzung in einem einzelnen Projekt statt global: dasselbe nach `<projekt>/.claude/skills/`. Anschließend den Agenten neu starten; `/help` listet die geladenen Skills.
+Danach Claude Code neu starten; `claude plugin list` zeigt das Plugin, `/help` die Skills. Wer die Skills bisher per Symlink eingehängt hatte, entfernt die alten Links vorher, sonst laden sie doppelt:
+
+```bash
+rm ~/.claude/skills/{news-nachrichtenlage,news-wirtschafts-briefing,plan-review,plan-lint,plan-coding}
+```
+
+**Aktualisieren.** Das Plugin trägt bewusst keine `version`: Claude Code nimmt dann den Commit-SHA als Version, und jeder Push ist ein Update. Manuell holt es `claude plugin update skills@der-audionaut`; automatisch geht es, wenn im `/plugin`-Dialog unter *Marketplaces* das Auto-Update für `der-audionaut` eingeschaltet ist (für fremde Marketplaces ist es standardmäßig aus). Ein neuer Skill ist ein neues Verzeichnis unter `skills/` — kein Eintrag in einer Manifestdatei, kein Symlink; er kommt mit dem nächsten Update auf alle Rechner.
+
+**Entwicklungsrechner.** Wo die Skills bearbeitet werden, ist die Installation aus GitHub im Weg, weil sie eine Kopie des letzten Commits lädt. Dort stattdessen das ganze Repo einmal verlinken:
+
+```bash
+ln -sfn "$PWD" ~/.claude/skills/skills
+```
+
+Claude Code lädt das Verzeichnis als Plugin `skills@skills-dir`, Änderungen wirken ohne Update sofort, neue Verzeichnisse unter `skills/` ebenso. Nicht beides zugleich: Ist das Plugin aus dem Marketplace installiert, gewinnt es, und der Symlink wird mit einem Hinweis übersprungen.
+
+**Prüfen.** `claude plugin validate .` prüft Manifeste und Skill-Frontmatter; `claude plugin details skills@der-audionaut` (bzw. `skills@skills-dir`) listet die erkannten Skills.
 
 ## Aufbau eines Skills
 
 ```
-<verzeichnis>/
+skills/<verzeichnis>/
 ├── SKILL.md              # Frontmatter + Anweisung — wird immer geladen
 └── references/           # optional, wird nur bei Bedarf nachgeladen
     └── <thema>.md
@@ -68,7 +86,7 @@ Für die Nutzung in einem einzelnen Projekt statt global: dasselbe nach `<projek
 
 Im Frontmatter steuern:
 
-- `name` — der Name, unter dem der Skill aufgerufen wird
+- `name` — nur Dokumentation; aufgerufen wird der Skill unter seinem Verzeichnisnamen
 - `description` — entscheidet, ob der Agent den Skill von selbst zieht; deshalb enthält sie bewusst viele Formulierungsvarianten der Anfrage
 - `allowed-tools` — Werkzeuge, auf die der Skill beschränkt bleibt
 - `disable-model-invocation` — `true` verhindert den automatischen Aufruf

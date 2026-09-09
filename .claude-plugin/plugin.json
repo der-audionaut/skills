@@ -1,0 +1,8 @@
+{
+  "name": "skills",
+  "description": "Eigene Skills: news-* erzeugt recherchierte Briefings, plan-* prüft, lintet und setzt Feature-Pläne um.",
+  "author": {
+    "name": "der-audionaut",
+    "url": "https://github.com/der-audionaut"
+  }
+}
