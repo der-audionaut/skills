@@ -1,10 +1,13 @@
 ---
 name: nachrichtenlage
 description: "Erstellt ein tagesaktuelles Nachrichten-Briefing aus Live-Recherche über ein breites Quellenspektrum — Agenturen, deutsche Leitmedien von links bis rechts, internationale Presse und unabhängige Medien — und trennt dabei gesicherte Fakten, Deutungen und unbestätigte Behauptungen sauber voneinander. Nutze diesen Skill immer, wenn nach der Nachrichtenlage, den aktuellen Nachrichten, der Weltlage, einem News-Briefing, einem Medien- oder Presseüberblick, dem Vergleich verschiedener Berichterstattung oder schlicht 'was ist heute passiert' gefragt wird — auch bei beiläufigen Formulierungen wie 'was gibt's Neues', 'Überblick Nachrichten', 'wie wird darüber berichtet', '/lage' oder wenn ein früheres Briefing fortgesetzt werden soll. Auch bei englischen Varianten (news briefing, media roundup) verwenden."
+argument-hint: "[kurz|lang|nur <thema>|medienvergleich <thema>] [sprache <sprache>]"
 allowed-tools: WebSearch WebFetch
 ---
 
 # Nachrichtenlage
+
+**Ausgabesprache: Deutsch, sofern die Anfrage nicht ausdrücklich eine andere nennt** — über den Zusatz `sprache <Sprache>` oder einen bloßen Sprachnamen. Das ganze Briefing steht dann in dieser Sprache, Überschriften eingeschlossen. Dass diese Anweisung deutsch ist, ändert daran nichts.
 
 ## Zweck
 
@@ -28,14 +31,16 @@ Wenn eine Zuordnung unklar ist, gilt die vorsichtigere Stufe.
 
 Diese Defaults gelten, solange nichts anderes gesagt wird. Sie dürfen dauerhaft geändert werden — dann diese Datei anpassen.
 
-- **Sprache:** Deutsch
+- **Sprache:** Deutsch — pro Anfrage umschaltbar, siehe Zusätze
 - **Schwerpunkt:** Deutschland und Europa zuerst, dann international
 - **Länge:** 500–800 Wörter
 - **Format:** Fließtext im Chat mit knappen Überschriften, keine Datei
 - **Themenzahl:** zwei bis vier Hauptthemen, nicht mehr
 - **Dauerthemen:** *(leer — hier Themen eintragen, die immer geprüft werden sollen)*
 
-Zusätze in der Anfrage: `kurz` (200 Wörter, nur die Hauptthemen), `lang` (mehr Tiefe pro Thema), `nur <Thema>` (Fokus), `Medienvergleich <Thema>` (nur den Abschnitt zur unterschiedlichen Berichterstattung, dafür ausführlich).
+Zusätze in der Anfrage: `kurz` (200 Wörter, nur die Hauptthemen), `lang` (mehr Tiefe pro Thema), `nur <Thema>` (Fokus), `Medienvergleich <Thema>` (nur den Abschnitt zur unterschiedlichen Berichterstattung, dafür ausführlich), `sprache <Sprache>` (Briefing in dieser Sprache, etwa `sprache english`; ein bloßer Sprachname oder ein Kürzel wie `en` genügt ebenfalls).
+
+Die Sprache gilt nur für den Text des Briefings, Überschriften eingeschlossen. Quellenauswahl, Schwerpunkt und die drei Ebenen bleiben unverändert — auch ein englisches Briefing liest deutsche Leitmedien über das Spektrum. Wörtliche Zitate bleiben im Original, wo der genaue Wortlaut zählt, mit Übersetzung daneben. Die Sprache der Anfrage allein schaltet nicht um: Eine englisch formulierte Bitte um die Nachrichtenlage ergibt ein deutsches Briefing, solange keine andere Sprache genannt ist — so bleibt die Voreinstellung verlässlich, und wer etwas anderes will, sagt es mit einem Wort.
 
 ## Quellen
 
@@ -122,3 +127,4 @@ Zum Schluss ein Satz, der einen Anschluss anbietet.
 - Ist im Divergenz-Abschnitt benannt, *worin* die Differenz besteht?
 - Steht im Text ein wertendes Urteil über eine politische Position, das dort nicht hingehört?
 - Ist der Text unter dem Längenlimit?
+- Steht das Briefing durchgängig in der verlangten Sprache, Überschriften eingeschlossen?

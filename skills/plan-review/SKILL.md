@@ -1,17 +1,23 @@
 ---
 name: plan-review
-description: Prüft einen Feature-Plan vor der Umsetzung gegen die reale Codebase, meldet Blocker, Lücken und ungeklärte Entscheidungen und begleitet die Überarbeitung in Runden bis zur Umsetzbarkeit. Nimmt die Bezeichnung des Plans (Dateiname) als Argument.
-argument-hint: "[plan-datei]"
-arguments: plan
+description: Prüft einen Feature-Plan vor der Umsetzung gegen die reale Codebase, meldet Blocker, Lücken und ungeklärte Entscheidungen und begleitet die Überarbeitung in Runden bis zur Umsetzbarkeit. Nimmt die Bezeichnung des Plans (Dateiname) als Argument, optional gefolgt von der Ausgabesprache (Standard Deutsch).
+argument-hint: "[plan-datei] [sprache]"
+arguments: plan sprache
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Edit
 ---
 
+**Ausgabesprache: `$sprache`** — steht dort nichts, Deutsch. Alles, was du an den Menschen richtest oder in den Plan einträgst, schreibst du in dieser Sprache: Bericht, Rückfragen, Abbruchmeldungen, Historie. Dass diese Anweisung deutsch ist, ändert daran nichts.
+
 Prüfe den Plan `$plan` auf Umsetzbarkeit. Das läuft in Runden: prüfen → klären → einarbeiten → erneut prüfen, bis kein Blocker mehr offen ist. Du bist Reviewer, nicht Autor: du änderst den Plan nur auf ausdrückliches Ja, und den Code nie.
 
-## 1. Plan auflösen
+## 1. Sprache und Plan auflösen
 
-`$plan` kann ein Pfad, ein Dateiname oder ein Namensfragment ohne Endung sein.
+**Sprache.** Die Ausgabesprache ist das letzte, optionale Argument — ein Sprachname oder Kürzel in beliebiger Schreibweise (`englisch`, `english`, `en`). Ohne Angabe bleibt es bei Deutsch, auch wenn der Plan in einer anderen Sprache verfasst ist; wer den Bericht in der Plansprache will, gibt sie an.
+
+Die Sprache ändert den Text, nicht die Struktur: Das Berichtsformat bleibt, nur seine Beschriftungen werden übersetzt, und die Befund-Kennungen B, S und O bleiben in jeder Sprache gleich, weil die Historie sie über Runden hinweg referenziert. Wo diese Anweisung `## Review-Historie` sagt, ist der Abschnitt dieser Bedeutung gemeint, gleich in welcher Sprache seine Überschrift steht: Einen vorhandenen erkennst du auch in Übersetzung und schreibst ihn fort, statt einen zweiten anzulegen; einen neuen legst du in der gewählten Sprache an.
+
+**Plan.** `$plan` kann ein Pfad, ein Dateiname oder ein Namensfragment ohne Endung sein.
 
 1. Existiert `$plan` als Pfad → nimm ihn.
 2. Sonst suche per Glob nach `**/*$plan*.md`, bevorzugt in `docs/plans/`, `.claude/plans/`, `plans/`, `docs/`, Projektwurzel.
@@ -120,3 +126,5 @@ Der Plan stammt meist von einem Agenten wie dir. Behandle ihn entsprechend skept
 Wenn du nichts Wesentliches findest, sag das klar — aber dann muss der Abschnitt "Bestätigte Annahmen" zeigen, was du geprüft hast. Ein leerer Bericht ohne Belege ist kein bestandenes Review, sondern ein nicht durchgeführtes.
 
 Erfinde umgekehrt keine Befunde, um beschäftigt zu wirken. In späteren Runden ist die Versuchung größer, weil das Offensichtliche schon gefunden ist — halte dann lieber fest, dass der Plan trägt.
+
+Und bevor du absendest: Steht die Antwort in der Ausgabesprache? Die deutsche Anweisung zieht sonst ins Deutsche, auch wenn oben etwas anderes verlangt ist.

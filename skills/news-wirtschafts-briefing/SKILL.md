@@ -1,9 +1,12 @@
 ---
 name: wirtschafts-briefing
 description: "Erstellt ein tagesaktuelles Wirtschafts- und Finanzmarkt-Briefing aus Live-Recherche: Marktbild, Leitthema des Tages, Konjunktur- und Notenbankdaten, Unternehmensmeldungen und die Termine der nächsten Stunden. Nutze diesen Skill immer, wenn nach Wirtschaftsnachrichten, Finanznachrichten, Börsenlage, Marktüberblick, Konjunktur, Zinsen, dem Morgenbriefing, dem Wochenausblick oder schlicht 'was ist heute wirtschaftlich los' gefragt wird — auch bei beiläufigen Formulierungen wie 'fass mir die Lage zusammen', 'Überblick Wirtschaft', 'was macht der Markt', '/briefing' oder wenn ein früheres Briefing fortgesetzt werden soll. Auch bei englischen Varianten (market brief, economic briefing) verwenden."
+argument-hint: "[kurz|lang|nur <thema>|mit wochenausblick] [sprache <sprache>]"
 ---
 
 # Wirtschafts-Briefing
+
+**Ausgabesprache: Deutsch, sofern die Anfrage nicht ausdrücklich eine andere nennt** — über den Zusatz `sprache <Sprache>` oder einen bloßen Sprachnamen. Das ganze Briefing steht dann in dieser Sprache, Überschriften eingeschlossen. Dass diese Anweisung deutsch ist, ändert daran nichts.
 
 ## Zweck
 
@@ -15,13 +18,15 @@ Der Wert liegt in der Verknüpfung, nicht in der Vollständigkeit. Ein Ölpreis,
 
 Diese Defaults gelten, solange die Nutzerin nichts anderes sagt. Sie darf sie jederzeit dauerhaft ändern — dann diese Datei entsprechend anpassen.
 
-- **Sprache:** Deutsch
+- **Sprache:** Deutsch — pro Anfrage umschaltbar, siehe Zusätze
 - **Geografischer Schwerpunkt:** Deutschland und Eurozone zuerst, USA als zweite Säule, Rest der Welt nur bei echter Relevanz
 - **Länge:** 400–700 Wörter
 - **Format:** Fließtext im Chat mit knappen Überschriften — keine Datei, kein Artefakt, außer es wird ausdrücklich verlangt
 - **Watchlist:** *(leer — hier Titel, Branchen oder Themen eintragen, die immer geprüft werden sollen)*
 
-Mögliche Zusätze in der Anfrage, die den Ablauf verändern: `kurz` (150 Wörter, nur Marktbild und Leitthema), `lang` (kein Limit, mehr Tiefe pro Block), `nur <Thema>` (Fokus auf ein Feld), `mit Wochenausblick` (Terminvorschau erzwingen).
+Mögliche Zusätze in der Anfrage, die den Ablauf verändern: `kurz` (150 Wörter, nur Marktbild und Leitthema), `lang` (kein Limit, mehr Tiefe pro Block), `nur <Thema>` (Fokus auf ein Feld), `mit Wochenausblick` (Terminvorschau erzwingen), `sprache <Sprache>` (Briefing in dieser Sprache, etwa `sprache english`; ein bloßer Sprachname oder ein Kürzel wie `en` genügt ebenfalls).
+
+Die Sprache gilt nur für den Text des Briefings, einschließlich Überschriften sowie Zahlen-, Währungs- und Datumsformat. Quellen, Schwerpunkt und Ablauf bleiben unverändert — auch ein englisches Briefing beginnt mit dem Überblicks-Abruf einer deutschen Wirtschaftszeitung und prüft Zahlen bei Destatis oder der EZB. Die Sprache der Anfrage allein schaltet nicht um: Eine englisch formulierte Bitte um das Briefing ergibt ein deutsches, solange keine andere Sprache genannt ist — so bleibt die Voreinstellung verlässlich, und wer etwas anderes will, sagt es mit einem Wort.
 
 ## Recherche
 
@@ -105,6 +110,7 @@ Zum Abschluss ein Satz, der einen naheliegenden Anschluss anbietet — ein Thema
 - Ist zwischen bestätigten Zahlen, vorläufigen Zahlen und Erwartungen unterschieden?
 - Ist der Beratungshinweis genau einmal gesetzt?
 - Ist der Text unter dem Längenlimit?
+- Steht das Briefing durchgängig in der verlangten Sprache, Überschriften und Zahlenformat eingeschlossen?
 
 ## Umgang mit dem Gefundenen
 

@@ -1,25 +1,31 @@
 ---
 name: plan-implement
-description: Setzt einen einzelnen Schritt aus einem Feature-Plan um — erst Entwurf im Sinne eines Systemarchitekten, dann die minimale produktionsreife Implementierung, danach Findings-Runden bis nichts Neues mehr auftaucht, und zum Schluss die Fortschreibung des Plans. Nimmt Planname und Schritt als Argumente.
-argument-hint: "[plan-datei] [schritt]"
-arguments: plan schritt
+description: Setzt einen einzelnen Schritt aus einem Feature-Plan um — erst Entwurf im Sinne eines Systemarchitekten, dann die minimale produktionsreife Implementierung, danach Findings-Runden bis nichts Neues mehr auftaucht, und zum Schluss die Fortschreibung des Plans. Nimmt Planname und Schritt als Argumente, optional gefolgt von der Ausgabesprache (Standard Deutsch).
+argument-hint: "[plan-datei] [schritt] [sprache]"
+arguments: plan schritt sprache
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Edit Write Bash
 ---
+
+**Ausgabesprache: `$sprache`** — steht dort nichts, Deutsch. Alles, was du an den Menschen richtest oder in den Plan einträgst, schreibst du in dieser Sprache: Entwurf, Berichte, Rückfragen, Abbruchmeldungen, Historie. Code folgt dem Bestand, nicht dieser Vorgabe. Dass diese Anweisung deutsch ist, ändert daran nichts.
 
 Setze Schritt `$schritt` aus dem Plan `$plan` um. Denke wie ein erfahrener Systemarchitekt: entwirf tragfähig für Wachstum, baue dann die minimale Version, die produktiv laufen kann. Nicht die ganze Zukunft, aber auch keinen Entwurf, der beim ersten Lastanstieg umgeworfen werden muss.
 
 Du setzt genau diesen einen Schritt um. Nicht den nächsten, nicht die Hälfte des übernächsten.
 
-## 1. Plan und Schritt auflösen
+## 1. Sprache, Plan und Schritt auflösen
 
-`$plan` kann ein Pfad, ein Dateiname oder ein Namensfragment ohne Endung sein.
+**Sprache.** Die Ausgabesprache ist das letzte, optionale Argument — ein Sprachname oder Kürzel in beliebiger Schreibweise (`englisch`, `english`, `en`). Ohne Angabe bleibt es bei Deutsch, auch wenn der Plan in einer anderen Sprache verfasst ist.
+
+Die Sprache gilt für das, was du schreibst — nicht für das, was du baust. Code, Bezeichner, Kommentare und Tests folgen den Konventionen des Bestands, gleich welche Sprache gewählt ist. Berichtsformat und Historie behalten ihre Struktur, nur die Beschriftungen werden übersetzt; die Finding-Kennung F bleibt in jeder Sprache gleich. Wo diese Anweisung `## Umsetzungs-Historie` oder `## Review-Historie` sagt, ist der Abschnitt dieser Bedeutung gemeint, gleich in welcher Sprache seine Überschrift steht: Einen vorhandenen erkennst du auch in Übersetzung und schreibst ihn fort, einen neuen legst du in der gewählten Sprache an.
+
+**Plan.** `$plan` kann ein Pfad, ein Dateiname oder ein Namensfragment ohne Endung sein.
 
 1. Existiert `$plan` als Pfad → nimm ihn.
 2. Sonst per Glob `**/*$plan*.md`, bevorzugt in `docs/plans/`, `.claude/plans/`, `plans/`, `docs/`, Projektwurzel.
 3. Mehrere Treffer → auflisten und abbrechen, statt zu raten.
 
-`$schritt` kann eine Nummer, eine Überschrift oder ein Fragment davon sein. Kein Argument übergeben → nenne die noch offenen Schritte und frage, welcher gemeint ist. Mehrdeutig → dasselbe.
+**Schritt.** `$schritt` kann eine Nummer, eine Überschrift oder ein Fragment davon sein. Kein Argument übergeben → nenne die noch offenen Schritte und frage, welcher gemeint ist. Mehrdeutig → dasselbe. Nennt der Wert erkennbar eine Sprache statt eines Schritts und ist keine Sprache angegeben, war die Sprache gemeint: Nimm sie und frag nach dem Schritt.
 
 Lies den ganzen Plan, nicht nur den Schritt. Ein Schritt, der isoliert gelesen wird, wird isoliert falsch umgesetzt. Prüfe in der `## Umsetzungs-Historie` und in einer eventuellen `## Review-Historie`, was frühere Schritte bereits verändert oder als Erkenntnis hinterlassen haben.
 
@@ -110,3 +116,5 @@ Markiere den Schritt im Plan als erledigt und trage die Erkenntnisse dort ein, w
 Der gefährlichste Moment ist die zweite Runde, in der alles grün ist: dann ist die Versuchung groß, entweder Findings zu erfinden oder das Suchen einzustellen, bevor die Fehlerfälle geprüft sind. Beides ist ein schlechtes Ergebnis. Halte fest, was du ausgeführt hast und was dadurch belegt ist — daran misst sich die Runde, nicht an der Zahl der Findings.
 
 Und wenn der Plan an dieser Stelle falsch liegt, ist das ein Ergebnis, kein Hindernis. Sag es, statt darum herumzubauen.
+
+Und bevor du absendest: Steht die Antwort in der Ausgabesprache? Die deutsche Anweisung zieht sonst ins Deutsche, auch wenn oben etwas anderes verlangt ist.
