@@ -1,102 +1,107 @@
 # Skills
 
-Eigene Skills für agentische Entwicklungswerkzeuge. Ein Skill ist eine Arbeitsanweisung in Markdown, die der Agent bei passender Gelegenheit lädt — entweder automatisch, weil die Anfrage zur Beschreibung passt, oder ausdrücklich per `/name`.
+Custom skills for agentic development tools. A skill is a Markdown work instruction that the agent loads when the occasion fits — either automatically, because the request matches its description, or explicitly via `/name`.
 
-Zwei Familien liegen hier: `news-*` erzeugt recherchierte Briefings, `plan-*` bearbeitet Feature-Pläne über ihren gesamten Lebenszyklus.
+Two families live here: `news-*` produces researched briefings, `plan-*` works on feature plans across their entire lifecycle.
 
-## Übersicht
+## Overview
 
-| Verzeichnis | Aufruf | Zweck |
+| Directory | Invocation | Purpose |
 | --- | --- | --- |
-| `skills/news-nachrichtenlage` | automatisch oder `/news-nachrichtenlage` | Nachrichten-Briefing aus Live-Recherche, das Gesichertes, Deutung und Unbestätigtes trennt |
-| `skills/news-wirtschafts-briefing` | automatisch oder `/news-wirtschafts-briefing` | Wirtschafts- und Finanzmarkt-Briefing: Marktbild, Leitthema, Konjunktur, Termine |
-| `skills/plan-review` | `/plan-review <plan>` | Prüft einen Plan gegen die reale Codebase, bevor jemand ihn umsetzt |
-| `skills/plan-lint` | `/plan-lint <plan>` | Räumt einen Plan auf: totes Wissen, Inkonsistenzen, Widersprüche |
-| `skills/plan-coding` | `/plan-coding <plan> <schritt>` | Setzt genau einen Schritt des Plans um, inklusive Findings-Runden |
+| `skills/news-nachrichtenlage` | automatic or `/news-nachrichtenlage` | News briefing from live research that separates confirmed facts, interpretation and unconfirmed claims |
+| `skills/news-wirtschafts-briefing` | automatic or `/news-wirtschafts-briefing` | Economics and financial-market briefing: market picture, lead story, economic data, agenda |
+| `skills/plan-review` | `/plan-review <plan> [sprache]` | Checks a plan against the real codebase before anyone implements it |
+| `skills/plan-lint` | `/plan-lint <plan> [sprache]` | Cleans up a plan: dead knowledge, inconsistencies, contradictions |
+| `skills/plan-coding` | `/plan-coding <plan> <schritt> [sprache]` | Implements exactly one step of the plan, including findings rounds |
 
-Ein Skill heißt so wie sein Verzeichnis. Weil die Skills als Plugin `skills` geladen werden, lautet der volle Name `/skills:plan-review`; die Kurzform `/plan-review` funktioniert, solange kein anderes Plugin einen gleichnamigen Skill mitbringt.
+All five skills answer in German by default. The plan skills take a different output language as their last, optional argument (`/plan-review my-plan english`); the news skills take the modifier `sprache <language>` in the request. What the language covers and what it leaves alone is described under [Conventions](#conventions).
 
-Die News-Skills darf der Agent von selbst ziehen, wenn eine Anfrage zu ihrer Beschreibung passt. Die Plan-Skills tragen `disable-model-invocation: true` — sie laufen nur, wenn du sie ausdrücklich startest, weil sie fremde Dateien anfassen.
+A skill is named after its directory. Because the skills are loaded as the plugin `skills`, the full name is `/skills:plan-review`; the short form `/plan-review` works as long as no other plugin ships a skill of the same name.
 
-## Die Plan-Skills als Kette
+The agent may pull the news skills on its own whenever a request matches their description. The plan skills carry `disable-model-invocation: true` — they only run when you start them explicitly, because they touch files that are not their own.
 
-Die drei Plan-Skills sind Stationen eines Ablaufs und teilen sich einen Mechanismus: Jeder arbeitet in Runden, jeder schreibt sein Ergebnis in einen eigenen Historien-Abschnitt am Ende der Plandatei, und jeder hört auf, sobald eine vollständige Runde nichts Neues mehr findet.
+## The plan skills as a chain
+
+The three plan skills are stations of one workflow and share a mechanism: each works in rounds, each writes its result into its own history section at the end of the plan file, and each stops as soon as a complete round finds nothing new.
 
 ```
-Plan entsteht
+Plan is written
      │
-     ├─ /plan-review   → trägt der Plan gegen den echten Code?        → ## Review-Historie
-     ├─ /plan-lint     → ist der Plan in sich widerspruchsfrei?       → ## Lint-Historie
-     └─ /plan-coding   → Schritt für Schritt umsetzen                 → ## Umsetzungs-Historie
+     ├─ /plan-review   → does the plan hold up against the real code?  → ## Review-Historie
+     ├─ /plan-lint     → is the plan free of internal contradictions?  → ## Lint-Historie
+     └─ /plan-coding   → implement step by step                        → ## Umsetzungs-Historie
 ```
 
-Die Reihenfolge ist keine Vorschrift. `/plan-lint` lohnt sich besonders, nachdem mehrere Schritte umgesetzt wurden und der Plan Aussagen über einen Zustand enthält, den es nicht mehr gibt. `/plan-review` lohnt sich vor der ersten Zeile Code — und noch einmal, wenn die Umsetzung den Plan spürbar verändert hat.
+The order is not a rule. `/plan-lint` pays off especially after several steps have been implemented and the plan contains statements about a state that no longer exists. `/plan-review` pays off before the first line of code — and once more when implementation has noticeably changed the plan.
 
-Die Historien-Abschnitte sind der Übergabepunkt zwischen den Läufen. Ohne sie beginnt jeder Durchgang blind von vorn und macht abgelehnte Befunde neu auf.
+The history sections are the handover point between runs. Without them, every pass starts blind from scratch and reopens findings that were already rejected.
 
-**Plan finden:** Alle drei nehmen einen Pfad, einen Dateinamen oder ein Namensfragment. Gesucht wird bevorzugt in `docs/plans/`, `.claude/plans/`, `plans/`, `docs/` und der Projektwurzel. Bei mehreren Treffern bricht der Skill ab und listet auf, statt zu raten.
+**Finding the plan:** All three accept a path, a file name or a name fragment. The search prefers `docs/plans/`, `.claude/plans/`, `plans/`, `docs/` and the project root. With several hits, the skill aborts and lists them instead of guessing.
 
-## Die News-Skills
+**Choosing a language:** The last argument is optional and names the language of the report, the follow-up questions and everything the skill writes into the plan — as a name or code (`english`, `en`). Without it, German, even for a plan written in English. The skills recognise the history sections in any language and never create them twice; the finding IDs (B/S/O, T/I/W, F) stay untranslated so they remain stable across rounds.
 
-Beide erzeugen Fließtext im Chat, deutsch, ohne Datei — und beide haben denselben Kern: Nicht die Meldung ist der Wert, sondern ihre Einordnung.
+## The news skills
 
-`news-nachrichtenlage` ordnet jede Aussage einer von drei Ebenen zu (gesichert / Deutung / unbestätigt) und arbeitet Quellen von unten nach oben ab: Primärquellen, Agenturen, deutsche Leitmedien über das Spektrum, internationale Presse, unabhängige Medien. Der eigentliche Mehrwert steckt im Abschnitt *Wo die Berichterstattung auseinandergeht* — dort wird benannt, ob eine Differenz auf Fakten, Gewichtung, Deutung oder Auslassung beruht.
+Both produce prose in the chat, German by default, no file — and both share the same core: the value lies not in the news item but in its classification.
 
-`news-wirtschafts-briefing` beginnt mit einem einzigen Überblicks-Abruf, der Kurse und redaktionelle Gewichtung zugleich liefert, vertieft daraus das Leitthema und prüft jede Zahl an der Primärquelle — mit besonderem Augenmerk auf den Bezugszeitraum, weil Suchergebnisse Monate munter mischen.
+`news-nachrichtenlage` assigns every statement to one of three levels (confirmed / interpretation / unconfirmed) and works through sources from the bottom up: primary sources, news agencies, German quality media across the spectrum, international press, independent media. The real added value sits in the section *Wo die Berichterstattung auseinandergeht* (where the coverage diverges) — it names whether a difference rests on facts, weighting, interpretation or omission.
 
-Beide Skills haben Voreinstellungen (Sprache, Länge, Schwerpunkt) und je eine leere Liste, die auf dich wartet: **Dauerthemen** in `news-nachrichtenlage`, **Watchlist** in `news-wirtschafts-briefing`. Wenn du eine Einstellung dauerhaft anders willst, ändere sie direkt in der `SKILL.md` — genau dafür stehen die Blöcke dort.
+`news-wirtschafts-briefing` starts with a single overview fetch that delivers prices and editorial weighting at once, deepens the lead story from there, and checks every figure at its primary source — paying particular attention to the reference period, because search results cheerfully mix up months.
+
+Both skills have defaults (language, length, focus) and one empty list each that is waiting for you: **Dauerthemen** (standing topics) in `news-nachrichtenlage`, **Watchlist** in `news-wirtschafts-briefing`. If you want a setting changed permanently, edit it directly in the `SKILL.md` — that is exactly what those blocks are for. For a single run, a modifier in the request is enough: `kurz` (short), `nur <topic>` (only this topic) or `sprache english`. The language of the request alone does not switch the output — a request phrased in English yields a German briefing unless a language is named.
 
 ## Installation
 
-Das Repo ist zugleich Plugin-Marketplace und Plugin: `.claude-plugin/marketplace.json` beschreibt den Marketplace, `.claude-plugin/plugin.json` das Plugin `skills`, und alles unter `skills/` ist ein Skill. Claude Code holt sich das Plugin direkt aus GitHub — kein Clone, kein `git pull`, kein Symlink pro Skill.
+The repo is a plugin marketplace and a plugin at the same time: `.claude-plugin/marketplace.json` describes the marketplace, `.claude-plugin/plugin.json` the plugin `skills`, and everything under `skills/` is a skill. Claude Code fetches the plugin straight from GitHub — no clone, no `git pull`, no symlink per skill.
 
-Einmalig pro Rechner:
+Once per machine:
 
 ```bash
 claude plugin marketplace add der-audionaut/skills
 claude plugin install skills@der-audionaut
 ```
 
-Danach Claude Code neu starten; `claude plugin list` zeigt das Plugin, `/help` die Skills. Wer die Skills bisher per Symlink eingehängt hatte, entfernt die alten Links vorher, sonst laden sie doppelt:
+Then restart Claude Code; `claude plugin list` shows the plugin, `/help` shows the skills. If you previously mounted the skills via symlinks, remove the old links first, otherwise they load twice:
 
 ```bash
 rm ~/.claude/skills/{news-nachrichtenlage,news-wirtschafts-briefing,plan-review,plan-lint,plan-coding}
 ```
 
-**Aktualisieren.** Das Plugin trägt bewusst keine `version`: Claude Code nimmt dann den Commit-SHA als Version, und jeder Push ist ein Update. Manuell holt es `claude plugin update skills@der-audionaut`; automatisch geht es, wenn im `/plugin`-Dialog unter *Marketplaces* das Auto-Update für `der-audionaut` eingeschaltet ist (für fremde Marketplaces ist es standardmäßig aus). Ein neuer Skill ist ein neues Verzeichnis unter `skills/` — kein Eintrag in einer Manifestdatei, kein Symlink; er kommt mit dem nächsten Update auf alle Rechner.
+**Updating.** The plugin deliberately carries no `version`: Claude Code then uses the commit SHA as the version, and every push is an update. `claude plugin update skills@der-audionaut` fetches it manually; it happens automatically if auto-update for `der-audionaut` is switched on under *Marketplaces* in the `/plugin` dialog (it is off by default for third-party marketplaces). A new skill is a new directory under `skills/` — no manifest entry, no symlink; it reaches every machine with the next update.
 
-**Entwicklungsrechner.** Wo die Skills bearbeitet werden, ist die Installation aus GitHub im Weg, weil sie eine Kopie des letzten Commits lädt. Dort stattdessen das ganze Repo einmal verlinken:
+**Development machine.** Where the skills are edited, the GitHub install gets in the way because it loads a copy of the last commit. There, link the whole repo once instead:
 
 ```bash
 ln -sfn "$PWD" ~/.claude/skills/skills
 ```
 
-Claude Code lädt das Verzeichnis als Plugin `skills@skills-dir`, Änderungen wirken ohne Update sofort, neue Verzeichnisse unter `skills/` ebenso. Nicht beides zugleich: Ist das Plugin aus dem Marketplace installiert, gewinnt es, und der Symlink wird mit einem Hinweis übersprungen.
+Claude Code loads the directory as the plugin `skills@skills-dir`; changes take effect immediately without an update, and so do new directories under `skills/`. Not both at once: if the plugin is installed from the marketplace, it wins, and the symlink is skipped with a notice.
 
-**Prüfen.** `claude plugin validate .` prüft Manifeste und Skill-Frontmatter; `claude plugin details skills@der-audionaut` (bzw. `skills@skills-dir`) listet die erkannten Skills.
+**Checking.** `claude plugin validate .` checks manifests and skill frontmatter; `claude plugin details skills@der-audionaut` (or `skills@skills-dir`) lists the skills it recognised.
 
-## Aufbau eines Skills
+## Anatomy of a skill
 
 ```
-skills/<verzeichnis>/
-├── SKILL.md              # Frontmatter + Anweisung — wird immer geladen
-└── references/           # optional, wird nur bei Bedarf nachgeladen
-    └── <thema>.md
+skills/<directory>/
+├── SKILL.md              # frontmatter + instruction — always loaded
+└── references/           # optional, loaded only when needed
+    └── <topic>.md
 ```
 
-Im Frontmatter steuern:
+The frontmatter controls:
 
-- `name` — nur Dokumentation; aufgerufen wird der Skill unter seinem Verzeichnisnamen
-- `description` — entscheidet, ob der Agent den Skill von selbst zieht; deshalb enthält sie bewusst viele Formulierungsvarianten der Anfrage
-- `allowed-tools` — Werkzeuge, auf die der Skill beschränkt bleibt
-- `disable-model-invocation` — `true` verhindert den automatischen Aufruf
-- `argument-hint` / `arguments` — benannte Argumente, im Text als `$plan`, `$schritt` verwendbar
+- `name` — documentation only; the skill is invoked by its directory name
+- `description` — decides whether the agent pulls the skill on its own; that is why it deliberately contains many phrasings of the request
+- `allowed-tools` — the tools the skill is restricted to
+- `disable-model-invocation` — `true` prevents automatic invocation
+- `argument-hint` / `arguments` — named arguments, mapped positionally and usable in the text as `$plan`, `$schritt`, `$sprache`; an argument that is not passed becomes the empty string, which is why trailing arguments can be optional
 
-Die Dateien unter `references/` sind Auslagerungen der langen Listen — Prüfkriterien, Entwurfsdimensionen, Lint-Kategorien. Sie landen nur im Kontext, wenn der Skill sie über die Variable mit dem Skill-Verzeichnis (`${CLAUDE_SKILL_DIR}`) tatsächlich liest. Das hält die `SKILL.md` lesbar und den Kontext klein.
+The files under `references/` hold the long lists — review criteria, design dimensions, lint categories. They only enter the context when the skill actually reads them via the skill-directory variable (`${CLAUDE_SKILL_DIR}`). That keeps the `SKILL.md` readable and the context small.
 
-## Konventionen
+## Conventions
 
-- **Deutsch**, durchgängig — Anweisung, Bericht und Ausgabe.
-- **Prosa statt Stichwortliste.** Die Skills erklären, *warum* eine Regel gilt; eine Regel ohne Begründung wird in der Umsetzung als Erste gebogen.
-- **Jeder iterative Skill braucht ein Abbruchkriterium.** Ohne Terminierung erfindet ein Agent in Runde drei Findings, um beschäftigt zu wirken. Deshalb überall dasselbe Muster: keine neuen Optional-Befunde ab Runde 2, abgelehnte Befunde bleiben abgelehnt, nach drei Runden ohne Fortschritt entscheidet der Mensch.
-- **Ein Abschnitt „Vor dem Absenden prüfen" bzw. „Haltung" am Ende.** Dort steht, was typischerweise schiefgeht — die häufigste Fehlerquelle ist nie die fehlende Regel, sondern die bekannte Versuchung.
+- **German by default.** The instructions are written in German, and without a language argument so are report and output. The language can be switched per run — for the plan skills via the last argument, for the news skills via the modifier `sprache <language>`. That is why the language directive is the first line of every skill and is checked once more at the end: a single line in the middle of a German instruction demonstrably is not enough, the model answers in German anyway.
+- **The language changes the text, not the structure.** Report formats and histories keep their layout, only the labels are translated. Finding IDs stay untranslated, history sections are recognised in any language and never created twice, code follows the existing codebase rather than the language argument, and the sources and focus of the news skills are untouched.
+- **Prose instead of bullet lists.** The skills explain *why* a rule holds; a rule without a reason is the first one to be bent during implementation.
+- **Every iterative skill needs a termination criterion.** Without one, an agent invents findings in round three to look busy. Hence the same pattern everywhere: no new optional findings from round 2 on, rejected findings stay rejected, after three rounds without progress the human decides.
+- **A section „Vor dem Absenden prüfen" (check before sending) or „Haltung" (stance) at the end.** It states what typically goes wrong — the most common source of error is never the missing rule but the well-known temptation.
