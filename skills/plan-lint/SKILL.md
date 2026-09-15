@@ -1,31 +1,31 @@
 ---
 name: plan-lint
-description: Räumt einen Feature-Plan auf — entfernt totes Wissen, vereinheitlicht Inkonsistenzen und löst Widersprüche zwischen Architektur, Datenfluss, API, Schema und Caching auf, iterativ bis ein Durchgang keine neuen Findings mehr bringt. Nimmt die Bezeichnung des Plans als Argument, optional gefolgt von der Ausgabesprache (Standard Deutsch).
-argument-hint: "[plan-datei] [sprache]"
-arguments: plan sprache
+description: Räumt einen Feature-Plan auf — entfernt totes Wissen, vereinheitlicht Inkonsistenzen und löst Widersprüche zwischen Architektur, Datenfluss, API, Schema und Caching auf, iterativ bis ein Durchgang keine neuen Findings mehr bringt. Nimmt die Bezeichnung des Plans als Argument.
+argument-hint: "[plan-datei]"
+arguments: plan
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Edit
 ---
 
-**Ausgabesprache: `$sprache`** — steht dort nichts, Deutsch. Alles, was du an den Menschen richtest oder in den Plan einträgst, schreibst du in dieser Sprache: Bericht, Rückfragen, Abbruchmeldungen, Lint-Historie. Dass diese Anweisung deutsch ist, ändert daran nichts.
+**Ausgabesprache: die Sprache des Plans.** Bericht, Rückfragen, Abbruchmeldungen und Lint-Historie schreibst du in der Sprache, in der der Plan verfasst ist — bis der Plan gelesen ist, auf Deutsch. Dass diese Anweisung deutsch ist, ändert daran nichts.
 
 Räume den Plan `$plan` auf. Lies ihn wie ein erfahrener Systemarchitekt, der ein fremdes Entwurfsdokument übernimmt: Trägt der Entwurf durchgängig dieselbe Vorstellung vom System, oder stehen in Kapitel 2 und Kapitel 6 zwei verschiedene Systeme?
 
 Du prüfst hier nicht, ob der Plan gut ist — das macht `/plan-review`. Du prüfst, ob er in sich stimmt, und stellst her, was du belegbar herstellen kannst.
 
-## 1. Sprache und Plan auflösen
-
-**Sprache.** Die Ausgabesprache ist das letzte, optionale Argument — ein Sprachname oder Kürzel in beliebiger Schreibweise (`englisch`, `english`, `en`). Ohne Angabe bleibt es bei Deutsch, auch wenn der Plan in einer anderen Sprache verfasst ist; wer den Bericht in der Plansprache will, gibt sie an.
-
-Die Sprache ändert den Text, nicht die Struktur: Das Berichtsformat bleibt, nur seine Beschriftungen werden übersetzt, und die Finding-Kennungen T, I und W bleiben in jeder Sprache gleich, damit Historie und Mensch sie eindeutig referenzieren können. Wo diese Anweisung `## Review-Historie`, `## Umsetzungs-Historie` oder `## Lint-Historie` sagt, ist jeweils der Abschnitt dieser Bedeutung gemeint, gleich in welcher Sprache seine Überschrift steht: Einen vorhandenen erkennst du auch in Übersetzung — und entfernst ihn ebenso wenig —, einen neuen legst du in der gewählten Sprache an.
-
-Den Plan selbst lintest du auf Inhalt, nicht auf Sprache. Ein Plan, der Deutsch und Englisch mischt, ist erst dann ein I-Finding, wenn dasselbe Ding dadurch zwei Namen trägt.
+## 1. Plan auflösen
 
 **Plan.** `$plan` kann ein Pfad, ein Dateiname oder ein Namensfragment ohne Endung sein.
 
 1. Existiert `$plan` als Pfad → nimm ihn.
 2. Sonst per Glob `**/*$plan*.md`, bevorzugt in `docs/plans/`, `.claude/plans/`, `plans/`, `docs/`, Projektwurzel.
 3. Mehrere Treffer → auflisten und abbrechen, statt zu raten.
+
+**Sprache.** Die Ausgabesprache ist die Sprache des Plans. Kopfblock und Überschriften entscheiden — nicht Zitate, Bezeichner oder Codeblöcke, die in einem deutschen Plan oft englisch sind. Die Sprache ändert den Text, nicht die Struktur: Das Berichtsformat bleibt, nur seine Beschriftungen werden übersetzt.
+
+**Historie.** Wo diese Anweisung `## Review-Historie`, `## Umsetzungs-Historie` oder `## Lint-Historie` sagt, ist jeweils der Abschnitt dieser Bedeutung gemeint, gleich in welcher Sprache seine Überschrift steht — ein Plan kann aus `/plan-create` in einer anderen Sprache stammen. Einen vorhandenen erkennst du auch in Übersetzung — und entfernst ihn ebenso wenig —, einen neuen legst du in der Plansprache an. Die Finding-Kennungen T, I und W bleiben unübersetzt, damit Historie und Mensch sie eindeutig referenzieren können.
+
+Den Plan selbst lintest du auf Inhalt, nicht auf Sprache. Ein Plan, der Deutsch und Englisch mischt, ist erst dann ein I-Finding, wenn dasselbe Ding dadurch zwei Namen trägt.
 
 Lies den Plan vollständig, bevor du irgendetwas änderst. Inkonsistenzen erkennt man nur im Ganzen — der Abschnitt, der falsch aussieht, ist oft der richtige.
 
@@ -111,6 +111,8 @@ Nach der letzten Runde eine kompakte Zeile in `## Lint-Historie` am Ende des Pla
 ### <Datum> — 2 Runden — 4 entfernt, 3 vereinheitlicht, 1 Widerspruch offen (W1: Cache-Gültigkeit)
 ```
 
+In einem fremdsprachigen Plan trägt der neue Abschnitt die übersetzte Überschrift — `## Lint History` — und seine Zeilen folgen der Plansprache; die Vorlage hier ist deutsch, weil diese Anweisung es ist, nicht weil der Abschnitt es sein müsste.
+
 Kein Protokoll der einzelnen Zeilen — dafür gibt es die Versionsverwaltung. In der Historie steht nur, was offen blieb, damit der nächste Durchgang dort ansetzt.
 
 ## 7. Haltung
@@ -119,4 +121,4 @@ Die Versuchung eines Aufräum-Durchgangs ist, Kürze mit Qualität zu verwechsel
 
 Die zweite Versuchung ist, einen Widerspruch aufzulösen, indem man sich für eine Seite entscheidet. Das ist keine Aufräumarbeit, sondern eine Architekturentscheidung, die dir nicht zusteht, solange kein Beleg sie trägt.
 
-Und bevor du absendest: Steht die Antwort in der Ausgabesprache? Die deutsche Anweisung zieht sonst ins Deutsche, auch wenn oben etwas anderes verlangt ist.
+Und bevor du absendest: Steht die Antwort in der Sprache des Plans? Die deutsche Anweisung zieht sonst ins Deutsche, auch wenn der Plan englisch ist.
