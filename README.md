@@ -2,7 +2,7 @@
 
 Custom skills for agentic development tools. A skill is a Markdown work instruction that the agent loads when the occasion fits — either automatically, because the request matches its description, or explicitly via `/name`.
 
-Two families live here: `news-*` produces researched briefings, `plan-*` works on feature plans across their entire lifecycle.
+Three families live here: `news-*` produces researched briefings, `plan-*` works on feature plans across their entire lifecycle, `tool-*` takes over everyday Git chores — so far the rebase.
 
 ## Overview
 
@@ -14,12 +14,13 @@ Two families live here: `news-*` produces researched briefings, `plan-*` works o
 | `skills/plan-review` | `/plan-review <plan> [sprache]` | Checks a plan against the real codebase before anyone implements it |
 | `skills/plan-lint` | `/plan-lint <plan> [sprache]` | Cleans up a plan: dead knowledge, inconsistencies, contradictions |
 | `skills/plan-coding` | `/plan-coding <plan> <schritt> [sprache]` | Implements exactly one step of the plan, including findings rounds |
+| `skills/tool-git-rebase` | `/tool-git-rebase <basebranch> [sprache]` | Rebases the current branch onto a base branch: fetches first, resolves conflicts commit by commit with both sides' intent preserved, verifies with the project's build and tests, never pushes |
 
-All six skills answer in German by default. The plan skills take a different output language as their last, optional argument (`/plan-review my-plan english`, `/plan-create "invoice export as CSV" english` — the free-text description goes in quotes when a language follows); the news skills take the modifier `sprache <language>` in the request. What the language covers and what it leaves alone is described under [Conventions](#conventions).
+All seven skills answer in German by default. The plan and tool skills take a different output language as their last, optional argument (`/plan-review my-plan english`, `/tool-git-rebase main english`, `/plan-create "invoice export as CSV" english` — the free-text description goes in quotes when a language follows); the news skills take the modifier `sprache <language>` in the request. What the language covers and what it leaves alone is described under [Conventions](#conventions).
 
 A skill is named after its directory. Because the skills are loaded as the plugin `skills`, the full name is `/skills:plan-review`; the short form `/plan-review` works as long as no other plugin ships a skill of the same name.
 
-The agent may pull the news skills on its own whenever a request matches their description. The plan skills carry `disable-model-invocation: true` — they only run when you start them explicitly, because they touch files that are not their own.
+The agent may pull the news skills on its own whenever a request matches their description. The plan and tool skills carry `disable-model-invocation: true` — they only run when you start them explicitly, because they touch files, or in the case of `tool-git-rebase` the Git history, that are not their own.
 
 ## The plan skills as a chain
 
@@ -55,6 +56,14 @@ Both produce prose in the chat, German by default, no file — and both share th
 
 Both skills have defaults (language, length, focus) and one empty list each that is waiting for you: **Dauerthemen** (standing topics) in `news-nachrichtenlage`, **Watchlist** in `news-wirtschafts-briefing`. If you want a setting changed permanently, edit it directly in the `SKILL.md` — that is exactly what those blocks are for. For a single run, a modifier in the request is enough: `kurz` (short), `nur <topic>` (only this topic) or `sprache english`. The language of the request alone does not switch the output — a request phrased in English yields a German briefing unless a language is named.
 
+## The tool skill
+
+`tool-git-rebase` rebases the branch you are on onto the base branch you name: `/tool-git-rebase main`. It fetches first so the rebase lands on the current state of the base rather than a stale local copy, refuses to start on a dirty working tree, over a rebase already in progress or on a detached HEAD, and records the starting commit before it changes anything, so the way back is always known.
+
+Conflicts are resolved commit by commit, and the rule is that both intentions survive: the base's change stays, and the branch's commit does on the new state what it did before — with new names, new signatures, moved code. Where the two sides want different things at the same spot, the skill stops and asks instead of picking a side; taking one side wholesale with `--ours` or `--theirs` counts as a hidden revert, not a resolution. The recurring cases — lock files, generated code, formatting runs, delete-versus-modify, colliding migrations — are listed with their treatment in `references/konfliktmuster.md`.
+
+After the rebase it runs the project's build and tests, because renames and moved code produce conflicts Git never flags, compares the branch's diff against the base before and after so a lost change shows up, and checks that the commits are still the same ones in the same order. It never pushes and never squashes, reorders or rewords commits. Rewriting published history is your decision; the report ends with the `git push --force-with-lease` line for when you make it, and with `git reset --hard ORIG_HEAD` for when you don't.
+
 ## Installation
 
 The repo is a plugin marketplace and a plugin at the same time: `.claude-plugin/marketplace.json` describes the marketplace, `.claude-plugin/plugin.json` the plugin `skills`, and everything under `skills/` is a skill. Claude Code fetches the plugin straight from GitHub — no clone, no `git pull`, no symlink per skill.
@@ -69,7 +78,7 @@ claude plugin install skills@der-audionaut
 Then restart Claude Code; `claude plugin list` shows the plugin, `/help` shows the skills. If you previously mounted the skills via symlinks, remove the old links first, otherwise they load twice:
 
 ```bash
-rm ~/.claude/skills/{news-nachrichtenlage,news-wirtschafts-briefing,plan-create,plan-review,plan-lint,plan-coding}
+rm ~/.claude/skills/{news-nachrichtenlage,news-wirtschafts-briefing,plan-create,plan-review,plan-lint,plan-coding,tool-git-rebase}
 ```
 
 **Updating.** The plugin deliberately carries no `version`: Claude Code then uses the commit SHA as the version, and every push is an update. `claude plugin update skills@der-audionaut` fetches it manually; it happens automatically if auto-update for `der-audionaut` is switched on under *Marketplaces* in the `/plugin` dialog (it is off by default for third-party marketplaces). A new skill is a new directory under `skills/` — no manifest entry, no symlink; it reaches every machine with the next update.
@@ -106,7 +115,7 @@ The files under `references/` hold the long lists — review criteria, design di
 ## Conventions
 
 - **German by default.** The instructions are written in German, and without a language argument so are report and output. The language can be switched per run — for the plan skills via the last argument, for the news skills via the modifier `sprache <language>`. That is why the language directive is the first line of every skill and is checked once more at the end: a single line in the middle of a German instruction demonstrably is not enough, the model answers in German anyway.
-- **The language changes the text, not the structure.** Report formats and histories keep their layout, only the labels are translated; a freshly created plan likewise keeps section order, tables, step numbers and wave labels while headings and prose follow the language. Finding IDs stay untranslated, history sections are recognised in any language and never created twice, code follows the existing codebase rather than the language argument, and the sources and focus of the news skills are untouched.
+- **The language changes the text, not the structure.** Report formats and histories keep their layout, only the labels are translated; a freshly created plan likewise keeps section order, tables, step numbers and wave labels while headings and prose follow the language. Finding IDs stay untranslated, history sections are recognised in any language and never created twice, code follows the existing codebase rather than the language argument, commit messages stay as their authors wrote them, and the sources and focus of the news skills are untouched.
 - **Prose instead of bullet lists.** The skills explain *why* a rule holds; a rule without a reason is the first one to be bent during implementation.
-- **Every iterative skill needs a termination criterion.** Without one, an agent invents findings in round three to look busy. Hence the same pattern everywhere: no new optional findings from round 2 on, rejected findings stay rejected, after three rounds without progress the human decides.
+- **Every iterative skill needs a termination criterion.** Without one, an agent invents findings in round three to look busy. Hence the same pattern everywhere: no new optional findings from round 2 on, rejected findings stay rejected, after three rounds without progress the human decides — and a rebase that cannot get one commit through in three attempts stays standing for the human instead of running on with invented resolutions.
 - **A section „Vor dem Absenden prüfen" (check before sending) or „Haltung" (stance) at the end.** It states what typically goes wrong — the most common source of error is never the missing rule but the well-known temptation.
