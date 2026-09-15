@@ -1,23 +1,19 @@
 ---
 name: plan-implement
-description: Setzt einen einzelnen Schritt aus einem Feature-Plan um — erst Entwurf im Sinne eines Systemarchitekten, dann die minimale produktionsreife Implementierung, danach Findings-Runden bis nichts Neues mehr auftaucht, und zum Schluss die Fortschreibung des Plans. Nimmt Planname und Schritt als Argumente, optional gefolgt von der Ausgabesprache (Standard Deutsch).
-argument-hint: "[plan-datei] [schritt] [sprache]"
-arguments: plan schritt sprache
+description: Setzt einen einzelnen Schritt aus einem Feature-Plan um — erst Entwurf im Sinne eines Systemarchitekten, dann die minimale produktionsreife Implementierung, danach Findings-Runden bis nichts Neues mehr auftaucht, und zum Schluss die Fortschreibung des Plans. Nimmt Planname und Schritt als Argumente.
+argument-hint: "[plan-datei] [schritt]"
+arguments: plan schritt
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Edit Write Bash
 ---
 
-**Ausgabesprache: `$sprache`** — steht dort nichts, Deutsch. Alles, was du an den Menschen richtest oder in den Plan einträgst, schreibst du in dieser Sprache: Entwurf, Berichte, Rückfragen, Abbruchmeldungen, Historie. Code folgt dem Bestand, nicht dieser Vorgabe. Dass diese Anweisung deutsch ist, ändert daran nichts.
+**Ausgabesprache: die Sprache des Plans.** Entwurf, Berichte, Rückfragen, Abbruchmeldungen und Historie schreibst du in der Sprache, in der der Plan verfasst ist — bis der Plan gelesen ist, auf Deutsch. Code, Bezeichner, Kommentare und Tests folgen dem Bestand, nicht dieser Vorgabe. Dass diese Anweisung deutsch ist, ändert daran nichts.
 
 Setze Schritt `$schritt` aus dem Plan `$plan` um. Denke wie ein erfahrener Systemarchitekt: entwirf tragfähig für Wachstum, baue dann die minimale Version, die produktiv laufen kann. Nicht die ganze Zukunft, aber auch keinen Entwurf, der beim ersten Lastanstieg umgeworfen werden muss.
 
 Du setzt genau diesen einen Schritt um. Nicht den nächsten, nicht die Hälfte des übernächsten.
 
-## 1. Sprache, Plan und Schritt auflösen
-
-**Sprache.** Die Ausgabesprache ist das letzte, optionale Argument — ein Sprachname oder Kürzel in beliebiger Schreibweise (`englisch`, `english`, `en`). Ohne Angabe bleibt es bei Deutsch, auch wenn der Plan in einer anderen Sprache verfasst ist.
-
-Die Sprache gilt für das, was du schreibst — nicht für das, was du baust. Code, Bezeichner, Kommentare und Tests folgen den Konventionen des Bestands, gleich welche Sprache gewählt ist. Berichtsformat und Historie behalten ihre Struktur, nur die Beschriftungen werden übersetzt; die Finding-Kennung F bleibt in jeder Sprache gleich. Wo diese Anweisung `## Umsetzungs-Historie` oder `## Review-Historie` sagt, ist der Abschnitt dieser Bedeutung gemeint, gleich in welcher Sprache seine Überschrift steht: Einen vorhandenen erkennst du auch in Übersetzung und schreibst ihn fort, einen neuen legst du in der gewählten Sprache an.
+## 1. Plan und Schritt auflösen
 
 **Plan.** `$plan` kann ein Pfad, ein Dateiname oder ein Namensfragment ohne Endung sein.
 
@@ -25,7 +21,11 @@ Die Sprache gilt für das, was du schreibst — nicht für das, was du baust. Co
 2. Sonst per Glob `**/*$plan*.md`, bevorzugt in `docs/plans/`, `.claude/plans/`, `plans/`, `docs/`, Projektwurzel.
 3. Mehrere Treffer → auflisten und abbrechen, statt zu raten.
 
-**Schritt.** `$schritt` kann eine Nummer, eine Überschrift oder ein Fragment davon sein. Kein Argument übergeben → nenne die noch offenen Schritte und frage, welcher gemeint ist. Mehrdeutig → dasselbe. Nennt der Wert erkennbar eine Sprache statt eines Schritts und ist keine Sprache angegeben, war die Sprache gemeint: Nimm sie und frag nach dem Schritt.
+**Schritt.** `$schritt` kann eine Nummer, eine Überschrift oder ein Fragment davon sein. Kein Argument übergeben → nenne die noch offenen Schritte und frage, welcher gemeint ist. Mehrdeutig → dasselbe.
+
+**Sprache.** Die Ausgabesprache ist die Sprache des Plans. Kopfblock und Überschriften entscheiden — nicht Zitate, Bezeichner oder Codeblöcke, die in einem deutschen Plan oft englisch sind. Die Sprache ändert den Text, nicht die Struktur: Das Berichtsformat bleibt, nur seine Beschriftungen werden übersetzt.
+
+**Historie.** Wo diese Anweisung `## Umsetzungs-Historie` oder `## Review-Historie` sagt, ist der Abschnitt dieser Bedeutung gemeint, gleich in welcher Sprache seine Überschrift steht — ein Plan kann aus `/plan-create` in einer anderen Sprache stammen. Einen vorhandenen erkennst du auch in Übersetzung und schreibst ihn fort, einen neuen legst du in der Plansprache an. Die Finding-Kennung F bleibt unübersetzt.
 
 Lies den ganzen Plan, nicht nur den Schritt. Ein Schritt, der isoliert gelesen wird, wird isoliert falsch umgesetzt. Prüfe in der `## Umsetzungs-Historie` und in einer eventuellen `## Review-Historie`, was frühere Schritte bereits verändert oder als Erkenntnis hinterlassen haben.
 
@@ -107,6 +107,8 @@ Erst wenn die Findings-Schleife terminiert ist, fasst du den Plan an. Lege den A
 - Erkenntnis: Schritt 5 kann den alten Export-Pfad nicht mehr voraussetzen
 ```
 
+In einem fremdsprachigen Plan trägt der neue Abschnitt die übersetzte Überschrift — `## Implementation History` — und seine Einträge folgen der Plansprache; die Vorlage hier ist deutsch, weil diese Anweisung es ist, nicht weil der Abschnitt es sein müsste.
+
 Markiere den Schritt im Plan als erledigt und trage die Erkenntnisse dort ein, wo sie hingehören — also in die späteren Schritte, die sie betreffen, nicht nur in die Historie.
 
 **Danach prüfst du den Plan erneut**, und zwar nur die Schritte, die deine Umsetzung berührt hat: Stimmen ihre Annahmen noch? Sind Schritte überflüssig geworden oder ist ein neuer nötig? Dieselbe Terminierung wie oben — bringt ein Durchgang keine neuen Findings, ist der Plan aktuell und du hörst auf. Für ein vollständiges Review des überarbeiteten Plans verweise auf `/plan-review $plan`, statt es hier nachzubauen.
@@ -117,4 +119,4 @@ Der gefährlichste Moment ist die zweite Runde, in der alles grün ist: dann ist
 
 Und wenn der Plan an dieser Stelle falsch liegt, ist das ein Ergebnis, kein Hindernis. Sag es, statt darum herumzubauen.
 
-Und bevor du absendest: Steht die Antwort in der Ausgabesprache? Die deutsche Anweisung zieht sonst ins Deutsche, auch wenn oben etwas anderes verlangt ist.
+Und bevor du absendest: Steht die Antwort in der Sprache des Plans? Die deutsche Anweisung zieht sonst ins Deutsche, auch wenn der Plan englisch ist.
