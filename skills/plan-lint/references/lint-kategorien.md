@@ -31,6 +31,8 @@ Kennzeichen: dieselbe Sache, unterschiedlich dargestellt. Beide Stellen können 
 - **Sprachebene.** Fachbegriff aus der Domäne hier, technisches Synonym dort, für dasselbe Konzept.
 - **Struktur.** Schritte mit Akzeptanzkriterium und Schritte ohne, im selben Plan.
 
+**Kein Finding:** die Fortschrittsmarkierung von `/plan-coding` — `W1 ✓ erledigt` oder `W1 ✗ abgebrochen` in der Schrittübersicht neben `W1` in der Parallel-Übersicht, der Punkt `**Status:**` im Detailschritt, der Kopfblock-Status `In Umsetzung` oder `Umgesetzt`. Das Wellen-Kürzel ist dasselbe; der Zusatz ist Zustand, keine zweite Benennung, und er bleibt stehen.
+
 ---
 
 ## W — Widersprüche
