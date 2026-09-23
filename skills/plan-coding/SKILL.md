@@ -1,6 +1,6 @@
 ---
 name: plan-implement
-description: Setzt einen einzelnen Schritt aus einem Feature-Plan um — erst Entwurf im Sinne eines Systemarchitekten, dann die minimale produktionsreife Implementierung, danach Findings-Runden bis nichts Neues mehr auftaucht, dann der Commit des Schritts mit einer Botschaft aus `write-commit-message`, wenn der Skill verfügbar ist — nicht der Plandatei, nicht auf dem Default-Branch, nicht bei roter Verifikation, nicht über fremde Änderungen hinweg, und nie ein Push — und zum Schluss die Fortschreibung des Plans. Nimmt Planname und Schritt als Argumente.
+description: Setzt einen einzelnen Schritt aus einem Feature-Plan um — erst Entwurf im Sinne eines Systemarchitekten, dann die minimale produktionsreife Implementierung, danach Findings-Runden bis nichts Neues mehr auftaucht, dann der Commit des Schritts mit einer Botschaft aus `write-commit-message`, wenn der Skill verfügbar ist — nicht der Plandatei, nicht auf dem Default-Branch, nicht bei roter Verifikation, nicht über fremde Änderungen hinweg, und nie ein Push — und zum Schluss die Fortschreibung des Plans — Historie, Erledigt-Markierung in Schrittübersicht, Detailschritt und Kopfblock, Erkenntnisse für spätere Schritte. Nimmt Planname und Schritt als Argumente.
 argument-hint: "[plan-datei] [schritt]"
 arguments: plan schritt
 disable-model-invocation: true
@@ -21,7 +21,7 @@ Du setzt genau diesen einen Schritt um. Nicht den nächsten, nicht die Hälfte d
 2. Sonst per Glob `**/*$plan*.md`, bevorzugt in `docs/plans/`, `.claude/plans/`, `plans/`, `docs/`, Projektwurzel.
 3. Mehrere Treffer → auflisten und abbrechen, statt zu raten.
 
-**Schritt.** `$schritt` kann eine Nummer, eine Überschrift oder ein Fragment davon sein. Kein Argument übergeben → nenne die noch offenen Schritte und frage, welcher gemeint ist. Mehrdeutig → dasselbe.
+**Schritt.** `$schritt` kann eine Nummer, eine Überschrift oder ein Fragment davon sein. Kein Argument übergeben → nenne die noch offenen Schritte — die, deren Zeile in der Schrittübersicht in der Spalte `Welle` keinen Zusatz `✓ erledigt` trägt — und frage, welcher gemeint ist. Mehrdeutig → dasselbe.
 
 **Sprache.** Die Ausgabesprache ist die Sprache des Plans. Kopfblock und Überschriften entscheiden — nicht Zitate, Bezeichner oder Codeblöcke, die in einem deutschen Plan oft englisch sind. Die Sprache ändert den Text, nicht die Struktur: Das Berichtsformat bleibt, nur seine Beschriftungen werden übersetzt.
 
@@ -81,7 +81,7 @@ Damit die Schleife auch wirklich konvergiert:
 - Ein Finding, das du bewusst nicht behebst, wird mit Begründung abgelehnt und nicht in der nächsten Runde neu aufgemacht.
 - Nach drei Runden ohne Fortschritt hörst du auf und benennst, woran es hängt: fehlende Information, ein Plan, der nicht trägt, oder ein Entwurf, der die falsche Grundannahme hat. Das entscheidet der Mensch.
 
-Bericht je Runde — den der Schlussrunde gibst du erst nach Abschnitt 5 aus, damit er die Zeile `Commit:` tragen kann; Zwischenrunden berichten sofort:
+Bericht je Runde — den der Schlussrunde gibst du erst nach Abschnitt 6 aus, damit er die Zeilen `Commit:` und `Plan:` tragen kann; Zwischenrunden berichten sofort:
 
 ```
 # Umsetzung: <Plan> — Schritt <X> — Runde <N>
@@ -90,6 +90,7 @@ Bericht je Runde — den der Schlussrunde gibst du erst nach Abschnitt 5 aus, da
 **Geändert:** <Dateien>
 **Verifikation:** <Befehl> → <Ergebnis>
 **Commit:** <sha> „<Betreff>" — Rückweg `git reset --soft HEAD~1` | keiner — <Grund> | noch nicht
+**Plan:** Schritt <X> markiert in Schrittübersicht, Detailschritt und Kopfblock; Historie fortgeschrieben | noch nicht
 
 ## Findings dieser Runde
 ### F1 — <Titel>  [Blocker | Sollte | Optional]
@@ -152,11 +153,13 @@ Danach `git rev-parse --short HEAD` und der Betreff für die Zeile `Commit:`. De
 
 ## 6. Plan fortschreiben
 
-Erst wenn die Findings-Schleife terminiert ist, fasst du den Plan an — und das gilt auch, wenn sie nach drei Runden ohne Fortschritt abgebrochen wurde oder die Verifikation rot geblieben ist: Dann steht der Grund in der Zeile `Commit:` und der Stand, an dem es hängt, in der Historie. Lege den Abschnitt `## Umsetzungs-Historie` am Ende der Datei an, falls er fehlt:
+Erst wenn die Findings-Schleife terminiert ist, fasst du den Plan an — und das gilt auch, wenn sie nach drei Runden ohne Fortschritt abgebrochen wurde oder die Verifikation rot geblieben ist: Dann steht der Grund in der Zeile `Commit:` und der Stand, an dem es hängt, in der Historie. Fortschreiben heißt vier Dinge, und keines davon ist optional: die Historie, die Markierung des Schritts an drei Stellen, die Erkenntnisse in den späteren Schritten und die Nachprüfung der berührten Schritte.
+
+**Historie.** Lege den Abschnitt `## Umsetzungs-Historie` am Ende der Datei an, falls er fehlt:
 
 ```
 ## Umsetzungs-Historie
-### Schritt 3 — <Datum> — abgeschlossen in 2 Runden
+### Schritt 3 (W2) — <Datum> — abgeschlossen in 2 Runden
 - Geändert: src/billing/invoice.ts, migrations/0042_add_status.sql
 - Commit: a1b2c3d „Billing: Add status column to invoice export" | keiner — Default-Branch `main` ausgecheckt
 - Abweichung: Statusfeld als Enum statt String — bestehendes Muster in order.ts
@@ -167,15 +170,29 @@ Erst wenn die Findings-Schleife terminiert ist, fasst du den Plan an — und das
 
 In einem fremdsprachigen Plan trägt der neue Abschnitt die übersetzte Überschrift — `## Implementation History` — und seine Einträge folgen der Plansprache; die Vorlage hier ist deutsch, weil diese Anweisung es ist, nicht weil der Abschnitt es sein müsste. Die Beschriftung `Commit:` wird mitübersetzt; SHA und Betreff bleiben, wie Git sie hat.
 
-Markiere den Schritt im Plan als erledigt und trage die Erkenntnisse dort ein, wo sie hingehören — also in die späteren Schritte, die sie betreffen, nicht nur in die Historie.
+**Markierung des Schritts.** Die Historie steht am Ende der Datei, und dort schaut niemand zuerst hin. Wer den Plan öffnet, sieht die Schrittübersicht — und steht dort noch `W1` ohne Zusatz, ist der Schritt für ihn offen, egal, was die Historie weiter unten sagt. Deshalb markierst du den Schritt an drei Stellen, an allen drei, in genau dieser Form:
 
-**Danach prüfst du den Plan erneut**, und zwar nur die Schritte, die deine Umsetzung berührt hat: Stimmen ihre Annahmen noch? Sind Schritte überflüssig geworden oder ist ein neuer nötig? Dieselbe Terminierung wie oben — bringt ein Durchgang keine neuen Findings, ist der Plan aktuell und du hörst auf. Für ein vollständiges Review des überarbeiteten Plans verweise auf `/plan-review $plan`, statt es hier nachzubauen.
+1. **Schrittübersicht** — die Tabelle oben im Plan, in der Vorlage `## Arbeitsschritte`: In der Zeile des Schritts bekommt die Spalte `Welle` den Zusatz `✓ erledigt`; aus `W1` wird `W1 ✓ erledigt`. Das Kürzel bleibt stehen, weil die Parallel-Übersicht und `/plan-lint` es referenzieren, und eine eigene Statusspalte legst du nicht an.
+2. **Detailschritt** — `### Schritt <X> — <Titel>` unter `## Schritte`: Als erster Punkt unter der Überschrift kommt `- **Status:** erledigt <Datum>`, vor `Ergebnis`. Die Überschrift selbst bleibt unverändert; `$schritt` wird über sie aufgelöst.
+3. **Kopfblock** — die Zeile `Status:`: Sie zählt mit — `In Umsetzung — <n> von <N> Schritten erledigt`, wobei N die Zahl der Zeilen in der Schrittübersicht ist. Ist damit der letzte Schritt erledigt, heißt sie `Umgesetzt — alle Schritte erledigt (<Datum>)`. Fehlt die Zeile, legst du sie an.
+
+Das Datum schreibst du wie im Kopfblock, `YYYY-MM-DD`. Endet der Lauf ohne Abschluss — Schleife nach drei Runden abgebrochen oder Verifikation rot —, bekommt der Schritt an Stelle 1 den Zusatz `✗ abgebrochen` und an Stelle 2 `- **Status:** abgebrochen <Datum> — <Grund in einem Halbsatz>`; der Kopfblock wechselt auf `In Umsetzung`, zählt ihn aber nicht mit. Ein späterer Lauf, der den Schritt abschließt, ersetzt diese Markierung durch die Erledigt-Form. So ist eine Zeile ohne Zusatz immer eine, die noch niemand angefasst hat.
+
+In einem fremdsprachigen Plan übersetzt du die Wörter, nicht die Form: `W1 ✓ done`, `- **Status:** done <Datum>`, `Implemented — all steps done (<Datum>)`. Haken, Kreuz, Position und Wellen-Kürzel bleiben.
+
+**Erkenntnisse.** Trage sie dort ein, wo sie hingehören — in die späteren Schritte, die sie betreffen, nicht nur in die Historie.
+
+**Danach prüfst du den Plan erneut**, und zwar nur die Schritte, die deine Umsetzung berührt hat: Stimmen ihre Annahmen noch? Sind Schritte überflüssig geworden oder ist ein neuer nötig? Dieselbe Terminierung wie oben — bringt ein Durchgang keine neuen Findings, ist der Plan aktuell und du hörst auf. Für ein vollständiges Review des überarbeiteten Plans verweise auf `/plan-review $plan`, statt es hier nachzubauen. Kommt dabei ein Schritt hinzu oder fällt einer weg, ändert sich N im Kopfblock — zieh die Zeile nach.
+
+**Kontrolle.** Bevor du den Bericht der Schlussrunde ausgibst, prüfst du die drei Stellen mit Grep in der Plandatei, nicht aus dem Gedächtnis: Die Tabellenzeile des Schritts endet auf `✓ erledigt |` oder `✗ abgebrochen |`; der erste Punkt unter seiner Überschrift beginnt mit `- **Status:**`; die `Status:`-Zeile des Kopfblocks zählt ihn mit. Fehlt eine Stelle, ist der Plan nicht fortgeschrieben — nachholen, dann berichten. Die Zeile `Plan:` im Bericht ist das Ergebnis dieser Prüfung, keine Formsache.
 
 ## 7. Haltung
 
 Der gefährlichste Moment ist die zweite Runde, in der alles grün ist: dann ist die Versuchung groß, entweder Findings zu erfinden oder das Suchen einzustellen, bevor die Fehlerfälle geprüft sind. Beides ist ein schlechtes Ergebnis. Halte fest, was du ausgeführt hast und was dadurch belegt ist — daran misst sich die Runde, nicht an der Zahl der Findings.
 
 Beim Commit sind es vier Versuchungen: alles zu stagen, weil `git add -A` schneller ist als eine Pfadliste; auf `main` zu committen, weil es ja nur lokal ist; einen roten Stand zu committen, „um nichts zu verlieren"; und den Hook mit `--no-verify` zu umgehen, weil er im Weg steht. Alle vier nehmen dem Menschen eine Entscheidung ab, die ihm gehört. Was du nicht committest, steht im Arbeitsverzeichnis und ist dort sicher; was du committest, hat den Rückweg im Bericht.
+
+Beim Fortschreiben ist die Versuchung, die Historie anzuhängen und den Plan damit für fortgeschrieben zu halten. Der Mensch liest den Plan aber von oben, und eine Schrittübersicht ohne Haken sagt ihm: nichts passiert. Die drei Markierungen sind deshalb kein Schmuck, sondern das, woran er den Stand abliest — und die Grep-Kontrolle ist dafür da, dass du sie nicht aus der Erinnerung als gesetzt meldest.
 
 Und wenn der Plan an dieser Stelle falsch liegt, ist das ein Ergebnis, kein Hindernis. Sag es, statt darum herumzubauen.
 
