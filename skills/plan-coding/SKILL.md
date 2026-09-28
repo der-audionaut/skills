@@ -1,6 +1,6 @@
 ---
 name: plan-implement
-description: Setzt einen einzelnen Schritt aus einem Feature-Plan um — erst Entwurf im Sinne eines Systemarchitekten, dann die minimale produktionsreife Implementierung, danach Findings-Runden bis nichts Neues mehr auftaucht, dann der Commit des Schritts mit einer Botschaft aus `write-commit-message`, wenn der Skill verfügbar ist — nicht der Plandatei, nicht auf dem Default-Branch, nicht bei roter Verifikation, nicht über fremde Änderungen hinweg, und nie ein Push — und zum Schluss die Fortschreibung des Plans — Historie, Erledigt-Markierung in Schrittübersicht, Detailschritt und Kopfblock, Erkenntnisse für spätere Schritte. Nimmt Planname und Schritt als Argumente.
+description: Setzt einen einzelnen Schritt aus einem Feature-Plan um — erst Entwurf im Sinne eines Systemarchitekten, dann die minimale produktionsreife Implementierung, danach Findings-Runden bis nichts Neues mehr auftaucht, dann ein `/simplify`-Durchgang über die Dateien des Schritts, sofern der Skill verfügbar ist und die Verifikation danach grün bleibt, dann der Commit des Schritts mit einer Botschaft aus `write-commit-message`, wenn der Skill verfügbar ist — nicht der Plandatei, nicht auf dem Default-Branch, nicht bei roter Verifikation, nicht über fremde Änderungen hinweg, und nie ein Push — und zum Schluss die Fortschreibung des Plans — Historie, Erledigt-Markierung in Schrittübersicht, Detailschritt und Kopfblock, Erkenntnisse für spätere Schritte. Nimmt Planname und Schritt als Argumente.
 argument-hint: "[plan-datei] [schritt]"
 arguments: plan schritt
 disable-model-invocation: true
@@ -81,7 +81,7 @@ Damit die Schleife auch wirklich konvergiert:
 - Ein Finding, das du bewusst nicht behebst, wird mit Begründung abgelehnt und nicht in der nächsten Runde neu aufgemacht.
 - Nach drei Runden ohne Fortschritt hörst du auf und benennst, woran es hängt: fehlende Information, ein Plan, der nicht trägt, oder ein Entwurf, der die falsche Grundannahme hat. Das entscheidet der Mensch.
 
-Bericht je Runde — den der Schlussrunde gibst du erst nach Abschnitt 6 aus, damit er die Zeilen `Commit:` und `Plan:` tragen kann; Zwischenrunden berichten sofort:
+Bericht je Runde — den der Schlussrunde gibst du erst nach Abschnitt 6 aus, damit er die Zeilen `Simplify:`, `Commit:` und `Plan:` tragen kann; Zwischenrunden berichten sofort:
 
 ```
 # Umsetzung: <Plan> — Schritt <X> — Runde <N>
@@ -89,6 +89,7 @@ Bericht je Runde — den der Schlussrunde gibst du erst nach Abschnitt 6 aus, da
 **Status:** Findings offen | Abgeschlossen
 **Geändert:** <Dateien>
 **Verifikation:** <Befehl> → <Ergebnis>
+**Simplify:** übernommen — <Dateien> | keine Änderungen | verworfen — <Grund> | übersprungen — <Grund> | noch nicht
 **Commit:** <sha> „<Betreff>" — Rückweg `git reset --soft HEAD~1` | keiner — <Grund> | noch nicht
 **Plan:** Schritt <X> markiert in Schrittübersicht, Detailschritt und Kopfblock; Historie fortgeschrieben | noch nicht
 
@@ -112,7 +113,7 @@ Der Abschnitt „Nicht zugeordnet" entfällt, wenn er leer wäre.
 
 ## 5. Committen
 
-Ist die Schleife grün terminiert, committest du den Schritt — nur ihn, nur auf dem Branch, den du vorgefunden hast, und nie mit einem Push. Der Commit ist Ergebnis, nicht Bedingung: Jede Vorbedingung, die nicht gilt, ist ein Grund „kein Commit", nie ein Grund abzubrechen. Bericht und Plan werden in jedem Fall geschrieben; der Grund steht in der Zeile `Commit:`. Ist das Verzeichnis kein Git-Repository, ist genau das der Grund, und der Rest dieses Abschnitts entfällt.
+Ist die Schleife grün terminiert, committest du den Schritt — nur ihn, nur auf dem Branch, den du vorgefunden hast, und nie mit einem Push. Vorher läuft genau einmal `/simplify` über die Dateien des Schritts, sofern der Skill verfügbar ist — siehe „Vereinfachen" unten. Der Commit ist Ergebnis, nicht Bedingung: Jede Vorbedingung, die nicht gilt, ist ein Grund „kein Commit", nie ein Grund abzubrechen. Bericht und Plan werden in jedem Fall geschrieben; der Grund steht in der Zeile `Commit:`. Ist das Verzeichnis kein Git-Repository, ist genau das der Grund, und der Rest dieses Abschnitts entfällt.
 
 **Vorbedingungen.** Alle fünf müssen gelten:
 
@@ -128,7 +129,24 @@ Ist die Schleife grün terminiert, committest du den Schritt — nur ihn, nur au
 
 **Stagen.** `git add -- <pfade>` mit der Pfadliste — nie `-A`, nie `.`.
 
-**Botschaft.** Steht in der Liste der verfügbaren Skills einer namens `write-commit-message` — mit Plugin-Präfix (`write-commit-message:write-commit-message`) oder ohne —, rufst du ihn jetzt, nach dem Stagen, über das Skill-Tool auf: Er liest `git diff --staged` und liefert Betreff und Body. Was er sonst beim Menschen erfragen würde, gibst du ihm als Argumenttext mit — auf Englisch, weil er englisch arbeitet, und gefüllt aus Plan und Schritt:
+**Vereinfachen.** Steht in der Liste der verfügbaren Skills einer namens `simplify` — mit Plugin-Präfix oder ohne —, rufst du ihn jetzt, nach dem Stagen und vor der Botschaft, genau einmal über das Skill-Tool auf. Er prüft geänderten Code auf Wiederverwendung, Vereinfachung und Effizienz und ändert ihn direkt im Arbeitsverzeichnis. Der Index ist dabei dein Sicherungspunkt: Er hält den Stand, den die Schleife grün verifiziert hat — auch neue Dateien, die ungestaged in keinem Diff auftauchen —, und alles, was der Skill ändert, steht danach als ungestagte Differenz dagegen. Ohne Ziel prüft er den ganzen Branch bis `@{upstream}`, also auch die Commits früherer Schritte; deshalb gibst du ihm die Dateien des Schritts als Ziel mit, auf Englisch, weil er englisch arbeitet:
+
+```
+Review target: the uncommitted changes in <pfad1>, <pfad2>, … — see
+`git diff HEAD -- <pfade>`. This is one plan step, not the whole branch:
+only simplify lines this diff adds or changes, touch no other file, keep the
+behaviour the tests cover, and do not commit.
+```
+
+Was er getan hat, liest du danach aus `git status --porcelain=v1 -uall` und `git diff`, nicht aus seiner Zusammenfassung. Dann entscheidest du über den Durchgang im Ganzen — behalten oder verwerfen, nie eine Auswahl: Der Stand im Index war grün, und ein halb übernommener Durchgang ist ein dritter Stand, den niemand geprüft hat.
+
+- **Pfade außerhalb deiner Liste** hat er nicht anzufassen. Hat er es doch getan, ist der Durchgang verworfen, weil deine Dateien sonst von einer Änderung abhängen könnten, die nicht mit in den Commit kommt. Aufräumen: `git checkout -- <pfade>` für deine Liste und für geänderte Pfade, die in der Ausgangslage sauber waren; neu angelegte Pfade, die es dort nicht gab, löschst du. Einen Pfad, der in der Ausgangslage schon geändert oder unversioniert war, kannst du nicht zurücksetzen, ohne Fremdes zu verlieren: Er bleibt, wie er ist, und steht unter „Nicht zugeordnet" mit dem Hinweis, dass der Skill ihn angefasst hat.
+- **Verifizieren** heißt auch hier ausführen: dieselben Befehle wie in Abschnitt 4, einmal. Grün → `git add -- <pfade>` mit deiner Liste, damit der Index den vereinfachten Stand hält; die Zeile `Verifikation:` im Schlussbericht nennt diesen Lauf. Rot → `git checkout -- <pfade>` stellt den Stand aus dem Index wieder her, und die Zeile `Simplify:` sagt „verworfen — Verifikation rot: <Befehl>". Einen zweiten Anlauf gibt es nicht, und die Findings-Schleife öffnest du dafür nicht wieder.
+- **Nichts geändert** → weiter mit der Botschaft; die Zeile `Simplify:` sagt „keine Änderungen".
+
+Steht kein solcher Skill in der Liste, scheitert der Aufruf oder fällt der Commit weg, weil eine Vorbedingung nicht gilt, entfällt der Durchgang ohne Ersatz, und die Zeile `Simplify:` nennt den Grund. Einen eigenen Vereinfachungsdurchgang baust du nicht nach: Die Findings-Runden haben den Code geprüft, und was ihnen an Vereinfachung entging, hält den Commit nicht auf.
+
+**Botschaft.** Steht in der Liste der verfügbaren Skills einer namens `write-commit-message` — mit Plugin-Präfix (`write-commit-message:write-commit-message`) oder ohne —, rufst du ihn jetzt, wenn der Index den endgültigen Stand hält, über das Skill-Tool auf: Er liest `git diff --staged` und liefert Betreff und Body. Was er sonst beim Menschen erfragen würde, gibst du ihm als Argumenttext mit — auf Englisch, weil er englisch arbeitet, und gefüllt aus Plan und Schritt:
 
 ```
 Context for the commit message. The staged diff is complete and this
@@ -149,7 +167,7 @@ Steht kein solcher Skill in der Liste oder scheitert der Aufruf, greift einmal u
 
 Danach `git rev-parse --short HEAD` und der Betreff für die Zeile `Commit:`. Der Rückweg ist `git reset --soft HEAD~1`; er behält die Änderungen im Index, und er steht im Bericht. Gepusht wird nie, ein Branch wird nie angelegt, gestasht wird nie — das ist die Entscheidung des Menschen, wie beim Rebase.
 
-**Rückfrage.** Ist der Default-Branch unbekannt — kein `<remote>/HEAD`, kein `main`, kein `master` —, committest du nicht auf eigene Faust. Schreib zuerst den Plan fort wie bei „kein Commit" mit dem Grund „Default-Branch nicht erkennbar, Rückfrage offen", gib den Bericht aus und stell dann als Letztes die Frage, ob der ausgecheckte Branch der Default-Branch ist und ob committet werden soll. Auf ein Ja staged und committest du wie oben, änderst die `Commit:`-Zeile in der Historie auf den SHA und gibst einen Nachtrag zum Bericht aus. Bleibt die Antwort aus, bleibt es beim fortgeschriebenen Plan ohne Commit. Die Frage steht am Ende und nicht schon in Abschnitt 1, damit Umsetzung und Plan fertig sind, bevor der Lauf auf eine Antwort wartet.
+**Rückfrage.** Ist der Default-Branch unbekannt — kein `<remote>/HEAD`, kein `main`, kein `master` —, committest du nicht auf eigene Faust. Schreib zuerst den Plan fort wie bei „kein Commit" mit dem Grund „Default-Branch nicht erkennbar, Rückfrage offen", gib den Bericht aus und stell dann als Letztes die Frage, ob der ausgecheckte Branch der Default-Branch ist und ob committet werden soll. Auf ein Ja staged, vereinfachst und committest du wie oben, änderst die `Commit:`-Zeile in der Historie auf den SHA und gibst einen Nachtrag zum Bericht aus. Bleibt die Antwort aus, bleibt es beim fortgeschriebenen Plan ohne Commit. Die Frage steht am Ende und nicht schon in Abschnitt 1, damit Umsetzung und Plan fertig sind, bevor der Lauf auf eine Antwort wartet.
 
 ## 6. Plan fortschreiben
 
@@ -162,6 +180,7 @@ Erst wenn die Findings-Schleife terminiert ist, fasst du den Plan an — und das
 ### Schritt 3 (W2) — <Datum> — abgeschlossen in 2 Runden
 - Geändert: src/billing/invoice.ts, migrations/0042_add_status.sql
 - Commit: a1b2c3d „Billing: Add status column to invoice export" | keiner — Default-Branch `main` ausgecheckt
+- Simplify: übernommen — doppelte Statusprüfung in invoice.ts zusammengezogen | keine Änderungen | verworfen — Verifikation rot | übersprungen — Skill nicht verfügbar
 - Abweichung: Statusfeld als Enum statt String — bestehendes Muster in order.ts
 - F2 Fehlender Index auf invoice.status — behoben
 - F4 Doppelte Serialisierung im Export — abgelehnt: betrifft Schritt 5
@@ -191,6 +210,8 @@ In einem fremdsprachigen Plan übersetzt du die Wörter, nicht die Form: `W1 ✓
 Der gefährlichste Moment ist die zweite Runde, in der alles grün ist: dann ist die Versuchung groß, entweder Findings zu erfinden oder das Suchen einzustellen, bevor die Fehlerfälle geprüft sind. Beides ist ein schlechtes Ergebnis. Halte fest, was du ausgeführt hast und was dadurch belegt ist — daran misst sich die Runde, nicht an der Zahl der Findings.
 
 Beim Commit sind es vier Versuchungen: alles zu stagen, weil `git add -A` schneller ist als eine Pfadliste; auf `main` zu committen, weil es ja nur lokal ist; einen roten Stand zu committen, „um nichts zu verlieren"; und den Hook mit `--no-verify` zu umgehen, weil er im Weg steht. Alle vier nehmen dem Menschen eine Entscheidung ab, die ihm gehört. Was du nicht committest, steht im Arbeitsverzeichnis und ist dort sicher; was du committest, hat den Rückweg im Bericht.
+
+Beim Vereinfachen ist die Versuchung, dem Skill seine Zusammenfassung zu glauben und die Verifikation nicht noch einmal laufen zu lassen — oder von einem roten Durchgang die Hälfte zu behalten, weil sie hübsch aussieht. Der Index hält den geprüften Stand; was der Skill darüber legt, ist entweder wieder grün oder weg.
 
 Beim Fortschreiben ist die Versuchung, die Historie anzuhängen und den Plan damit für fortgeschrieben zu halten. Der Mensch liest den Plan aber von oben, und eine Schrittübersicht ohne Haken sagt ihm: nichts passiert. Die drei Markierungen sind deshalb kein Schmuck, sondern das, woran er den Stand abliest — und die Grep-Kontrolle ist dafür da, dass du sie nicht aus der Erinnerung als gesetzt meldest.
 
