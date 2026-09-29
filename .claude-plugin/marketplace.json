@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "der-audionaut",
+  "description": "Eigene Skills für Claude Code: recherchierte News-Briefings, Werkzeuge für Feature-Pläne und Handgriffe wie Rebase und Dependency-Prüfung.",
+  "owner": {
+    "name": "der-audionaut",
+    "url": "https://github.com/der-audionaut"
+  },
+  "plugins": [
+    {
+      "name": "skills",
+      "source": "./",
+      "description": "news-* erzeugt recherchierte Briefings, plan-* prüft, lintet und setzt Feature-Pläne um, tool-* erledigt Handgriffe wie den Rebase und die Prüfung eines Dependency-Updates."
+    }
+  ]
+}
