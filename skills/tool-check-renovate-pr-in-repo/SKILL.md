@@ -1,6 +1,6 @@
 ---
 name: tool-check-renovate-pr-in-repo
-description: Inventarisiert die offenen Renovate-PRs eines GitHub-Repositories in einem frischen Klon, prüft jedes Dependency-Paar mit tool-dep-update-check in einem eigenen Subagent und berichtet je PR Urteil, Belastbarkeit und empfohlene Aktion — ohne etwas zu ändern, zu pushen oder zu approven. Nimmt die Repo-URL als Argument, optional gefolgt von PR-Nummern in Anführungszeichen, die den Lauf auf diese PRs beschränken.
+description: Prüft die offenen Renovate-PRs eines GitHub-Repositories in einem frischen Klon — jedes Dependency-Paar mit tool-dep-update-check in einem eigenen Subagent —, setzt nötige Anpassungen als Commit je Paket auf dem PR-Branch um, verifiziert sie und pusht und approved erst nach einer gebündelten Freigabe des Menschen; bis dahin verlässt nichts den Rechner. Nimmt die Repo-URL als Argument, optional gefolgt von PR-Nummern in Anführungszeichen, die den Lauf auf diese PRs beschränken.
 argument-hint: "[repoUrl] [prs]"
 arguments: repoUrl prs
 disable-model-invocation: true
@@ -9,9 +9,9 @@ allowed-tools: Bash Read Grep Glob Edit Write Agent Skill
 
 **Ausgabesprache: Deutsch.** Bericht, Rückfragen und Abbruchmeldungen schreibst du auf Deutsch, auch wenn Repository, PR-Titel und Changelogs englisch sind. Zitate aus PR-Bodies, Bezeichner, Befehle und Fehlermeldungen bleiben, wie sie sind.
 
-Prüfe die offenen Renovate-PRs des GitHub-Repositories `$repoUrl` — alle, oder mit `$prs` nur die genannten. Arbeite wie jemand, der vor dem Review-Klick die Frage beantwortet, die ein Renovate-PR sonst erst nach dem Merge beantwortet: Kann dieses Projekt das Update tragen, und was wäre dafür zu tun? Jedes Dependency-Paar — ein Paket mit Ausgangs- und Zielversion — prüft `tool-dep-update-check`; du klonst, inventarisierst, klassifizierst, delegierst, setzt nötige Anpassungen im Klon um und berichtest. Nach außen veränderst du nichts: kein Push, keine Approval, keine Datei in der Arbeitskopie des Menschen — Commits entstehen nur im Klon, und ob sie das Repository erreichen, entscheidet der Mensch.
+Prüfe die offenen Renovate-PRs des GitHub-Repositories `$repoUrl` — alle, oder mit `$prs` nur die genannten. Arbeite wie jemand, der vor dem Review-Klick die Frage beantwortet, die ein Renovate-PR sonst erst nach dem Merge beantwortet: Kann dieses Projekt das Update tragen, und was wäre dafür zu tun? Jedes Dependency-Paar — ein Paket mit Ausgangs- und Zielversion — prüft `tool-dep-update-check`; du klonst, inventarisierst, klassifizierst, delegierst, setzt nötige Anpassungen im Klon um und berichtest. Nach außen veränderst du nichts ohne ein Ja: Commits entstehen im Klon, und ob sie das Repository erreichen und der PR eine Approval bekommt, entscheidet der Mensch in genau einer gebündelten Freigabe; die Arbeitskopie des Menschen fasst du nie an.
 
-Drei Regeln tragen den ganzen Ablauf: Geschrieben wird nur unter dem Temp-Verzeichnis dieses Laufs — im Klon und in den Berichtsdateien daneben —, nie im Verzeichnis, aus dem der Skill gestartet wurde. Jede Aussage über einen PR hat einen Prüfbericht hinter sich, und wo keiner entstehen konnte, steht der Grund statt eines Urteils. Und nichts verlässt den Rechner: Dieser Skill liest GitHub und schreibt nicht dorthin; was er im Klon committet, bleibt dort, bis der Mensch pusht.
+Drei Regeln tragen den ganzen Ablauf: Geschrieben wird nur unter dem Temp-Verzeichnis dieses Laufs — im Klon und in den Berichtsdateien daneben —, nie im Verzeichnis, aus dem der Skill gestartet wurde. Jede Aussage über einen PR hat einen Prüfbericht hinter sich, und wo keiner entstehen konnte, steht der Grund statt eines Urteils. Und nichts verlässt den Rechner ohne ein Ja: Bis zur Freigabe liest dieser Skill GitHub nur; danach schreibt er genau zwei Dinge — den Push der eigenen Commits und die Approval —, und nur für die PRs, die der Mensch genannt hat.
 
 ## 1. Argumente und Voraussetzungen
 
@@ -23,7 +23,7 @@ Drei Regeln tragen den ganzen Ablauf: Geschrieben wird nur unter dem Temp-Verzei
 
 1. `command -v gh` — fehlt es, brich ab und nenne die Installation laut https://cli.github.com. Einen Ersatz über `curl` und Token gibt es nicht.
 2. `gh auth status` — endet es mit Exit-Code 1, brich ab und nenne `gh auth login`.
-3. `gh repo view <owner>/<repo> --json viewerPermission,defaultBranchRef` — `viewerPermission` muss `WRITE`, `MAINTAIN` oder `ADMIN` sein; `READ` oder `TRIAGE` heißt, dass die Folgeschritte dieses Skills — Anpassungs-Commit und Approval — unmöglich wären, und du brichst ab und sagst das. Ein Fehler hier heißt meist: Repo existiert nicht, Tippfehler in der URL oder kein Zugang; nenne die Antwort von `gh`. Den Namen des Default-Branchs aus `defaultBranchRef.name` merkst du dir.
+3. `gh repo view <owner>/<repo> --json viewerPermission,defaultBranchRef` — `viewerPermission` muss `WRITE`, `MAINTAIN` oder `ADMIN` sein; `READ` oder `TRIAGE` heißt, dass Push und Approval unmöglich wären, und du brichst ab und sagst das. Ein Fehler hier heißt meist: Repo existiert nicht, Tippfehler in der URL oder kein Zugang; nenne die Antwort von `gh`. Den Namen des Default-Branchs aus `defaultBranchRef.name` merkst du dir.
 
 Alles Weitere — Node, PHP, Java, Paketmanager — braucht nicht dieser Skill, sondern der Probelauf von `tool-dep-update-check`, und der meldet selbst, was ihm fehlt.
 
@@ -70,7 +70,9 @@ Das Inventar ist leer? Dann sag das — Gesamtzahl, Autorfilter, Präfix — und
 
 Den CI-Stand liest du aus `statusCheckRollup`: ein `FAILURE` oder `ERROR` darin heißt rot, nur `SUCCESS`, `NEUTRAL` oder `SKIPPED` heißt grün, leer oder ausstehend heißt unbekannt. Er entscheidet nichts an der Prüfung, nur an der Empfehlung.
 
-Die Klassifikation steht als Tabelle im Kontext, eine Zeile je PR — Nummer, Titel, Branch, Basis, Art, Paare, CI —, und du schreibst sie nach jedem PR fort. Sie ist dein Zustand; der Klon ist der andere.
+**Eigene PRs.** Ist `author.login` des PRs gleich dem eigenen Login aus `gh api user --jq .login` — bei einem selbst gehosteten Renovate unter dem eigenen Konto, oder bei handgemachten PRs mit Renovate-Präfix —, kann dieses Konto ihn nicht approven: „Pull request authors cannot approve their own pull requests" (Referenz, Abschnitt F). Der PR wird geprüft und angepasst wie jeder andere, aber seine Aktion heißt `push` statt `push + approve` und `keine: eigener PR, Approval durch ein anderes Konto` statt `approve`; Abschnitt 7 überspringt die Approval mit genau diesem Grund, statt sie an GitHub scheitern zu lassen.
+
+Die Klassifikation steht als Tabelle im Kontext, eine Zeile je PR — Nummer, Titel, Branch, Basis, Art, Paare, CI, Autor gleich eigenes Konto oder nicht —, und du schreibst sie nach jedem PR fort. Sie ist dein Zustand; der Klon ist der andere.
 
 ## 4. Prüfung je Paar
 
@@ -136,27 +138,62 @@ Steht kein solcher Skill in der Liste oder scheitert der Aufruf, greift einmal d
 
 **Einmal verifizieren.** Nach dem letzten Commit des PRs laufen die Befehle aus dem Probelauf — Build, Typen, Lint, Tests, so wie der Prüfbericht sie nennt — genau einmal auf dem Branch-Head, in der Subshell im Klon. Grün → der PR ist „angepasst", die Empfehlung lautet „approven", und `git -C "$KLON" log --oneline origin/<head>..<head>` liefert SHAs und Betreffs für den Bericht. Rot → die Ursache liegt in den Anpassungen oder in einer Bruchstelle, die der Bericht nicht nannte; beides ist deine Baustelle, solange die Korrektur an den genannten Stellen bleibt und kein Paket installiert, keine Testerwartung entschärft und kein Manifest angefasst wird — eine Testdatei, die der Prüfbericht als Verwendungsstelle nennt, ist eine Anpassungsstelle wie jede andere; eine, die er nicht nennt, ist tabu. Die Korrektur läuft über `git -C "$KLON" reset origin/<head>` — mixed: HEAD und Index zurück, Arbeitskopie bleibt; nicht `--soft`, das ließe alle Pakete gestaged, und der erste Neu-Commit nähme sie alle mit —, Einarbeiten, erneut je Paket stagen und committen, erneut verifizieren. Höchstens drei Anläufe. Liegt die Ursache dagegen an einer Stelle, die kein Bericht nennt, oder verlangt sie ein Paket, Manifest oder Lock, gibt es keinen Anlauf — das ist „Anpassung außerhalb des Auftrags" von oben. In beiden Fällen endet der PR gleich: Du parkst, was du geändert hast, und verwirfst nichts. Parken heißt `git -C "$KLON" switch -c <head>-anpassung-rot`; liegt noch Ungestagtes aus der Anpassung herum, sicherst du es dort mit `git -C "$KLON" add -- <pfade>` und einem Commit `WIP: Anpassungsversuch <paket>` — der einzige Commit, dessen Botschaft du selbst schreibst; dann `git -C "$KLON" switch <head>` und `git -C "$KLON" reset --hard origin/<head>`. Der PR ist „nicht freigegeben: Anpassung rot" beziehungsweise „… außerhalb des Auftrags", mit der Fehlermeldung oder der verlangten Änderung in einer Zeile; Branch und Pfad stehen im Bericht, damit der Mensch den Diff lesen kann, bevor er die Anpassung selbst macht. Eine Anpassung, die nur grün wird, indem man sie zurücknimmt, ist keine — dann war das Urteil „mit Anpassungen" falsch, und das ist ein Befund für den Bericht, kein Commit.
 
-**Zurück und weiter.** Nach jedem PR `git -C "$KLON" switch <default>`, dann der nächste. Der Rückweg je PR lautet `git -C "$KLON" branch -f <head> origin/<head>` — er steht im Bericht unter „Nächste Schritte" und wird von dir nie ausgeführt: Er würde die Commits, die du gerade gemacht hast, vom Branch nehmen. Gepusht wird nie — der Push ist die Entscheidung des Menschen, und der Bericht nennt den Befehl dafür.
+**Zurück und weiter.** Nach jedem PR `git -C "$KLON" switch <default>`, dann der nächste. Der Rückweg je PR lautet `git -C "$KLON" branch -f <head> origin/<head>` — er steht im Bericht unter „Nächste Schritte" und wird von dir nie ausgeführt: Er würde die Commits, die du gerade gemacht hast, vom Branch nehmen. Gepusht wird hier noch nicht — der Push kommt erst nach der Freigabe in Abschnitt 7, und ohne Ja gar nicht.
 
-## 6. Bericht und Aufräumen
+## 6. Freigabe
 
-Vor dem Bericht räumst du den Klon ab — `rm -rf "$KLON"` —, aber nur, wenn nichts Ungepushtes darin liegt: kein Anpassungs-Commit, kein geparkter Branch. Sonst bleibt er stehen, mit Pfad und Rückweg im Bericht, denn die Commits darin sind das Ergebnis dieses Laufs. `"$TMP/reports/"` und `"$TMP/prs/"` bleiben in jedem Fall, weil der Bericht dorthin verlinkt; `rm -rf "$TMP"` ist die Aufräumzeile für den Menschen, wenn er fertig ist. Ist das Startverzeichnis ein Git-Repository, zeigt `git status --porcelain` dort denselben Stand wie vor dem Lauf, und das steht als Zeile im Bericht.
+Wenn der letzte PR geprüft und, wo nötig, angepasst ist, gibst du zuerst den Schlussbericht aus (Abschnitt 8) — vollständig, mit „Freigabe: ausstehend" und den Spalten Push, Approve und reviewDecision auf „—". Dann folgt die Freigabetabelle und genau eine Frage, und damit endet dein Zug:
+
+```
+| PR | Paket(e) | Sprung | Urteil | Belastbarkeit | Commit | Aktion |
+|----|----------|--------|--------|---------------|--------|--------|
+| #<n> | <paket a→b> | patch \| minor \| major | <Urteil> | <Belastbarkeit> | <sha> (<paket>), … \| — | approve \| push + approve \| push (eigener PR, Approval durch anderes Konto) \| keine: <Grund> |
+Freigeben? „ja" für alle markierten, „nur #12 #15" für eine Auswahl, „nein" für keine.
+```
+
+Markiert sind die PRs mit Aktion `approve`, `push + approve` oder `push`. Gibt es keinen, entfällt die Frage, und der Bericht ist das Ende des Laufs. Die Frage stellst du als Text, nicht über ein Frage-Werkzeug: In einem nicht-interaktiven Lauf kommt dann schlicht keine Antwort, und genau das soll „nichts passiert" heißen — kein Push, keine Approval, der Klon bleibt mit seinen Commits stehen, und der Bericht hat schon alles gesagt, was der Mensch wissen muss. Die Vorgenehmigung der Werkzeuge gilt nur für den Zug, der den Skill aufgerufen hat; dass `git push` und `gh pr review` nach dem Ja noch einmal die normale Freigabe durchlaufen, ist für genau diese zwei Befehle erwünscht.
+
+**Die Antwort** liest du wörtlich: `ja` → alle markierten PRs; `nein` → keiner, der Lauf endet mit einem Satz; `nur #12 #15` (Nummern mit oder ohne `#`, durch Leerzeichen oder Kommas getrennt) → diese, sofern sie markiert sind — eine genannte Nummer ohne Aktion nennst du und lässt sie weg. Alles andere — „ja, aber ohne #15", „erst mal #12", eine Frage — beantwortest du mit einer Rückfrage in einem Satz und wartest erneut; du rätst nicht, was gemeint war, denn jede Fehldeutung pusht in ein fremdes Repository.
+
+## 7. Push und Approve
+
+Je freigegebenem PR, in der Reihenfolge der Tabelle, drei Schritte — und erst alle drei für einen PR, dann der nächste:
+
+**Push**, nur wenn Anpassungs-Commits auf `<head>` liegen: `git -C "$KLON" push origin <head>` — ohne `--force`, ohne `--force-with-lease`, niemals. Weist der Remote den Push ab, hat Renovate den Branch zwischen Klon und jetzt neu aufgesetzt (Referenz, Abschnitt E): `git -C "$KLON" fetch origin <head>`, dann auf dem Branch `git -C "$KLON" switch <head> && git -C "$KLON" rebase origin/<head>` — das trägt genau deine Commits aus `origin/<head>..<head>` auf den neuen Stand —, dann erneut pushen. Höchstens drei Anläufe; ein Konflikt im Rebase ist ein Abbruch mit `git -C "$KLON" rebase --abort`. Danach gilt der PR als „nicht gepusht: <Grund>", bekommt **keine** Approval — eine Approval auf einen PR, dessen Anpassung nicht auf dem Branch liegt, wäre falsch — und der nächste PR kommt dran. Ein PR mit Aktion `approve` ohne Commits überspringt diesen Schritt.
+
+**Approve** — entfällt ohne Versuch, wenn der PR vom eigenen Konto stammt (Abschnitt 3): Die Spalte sagt dann „nicht erteilt: eigener PR", und der Push allein ist das Ergebnis. Sonst kommt der Approval-Text per `mktemp` in eine Datei außerhalb des Klons. Erste Zeile, in jeder Sprache gleich:
+
+```
+<login> by [tool-check-renovate-pr-in-repo](https://github.com/der-audionaut/skills/tree/main/skills/tool-check-renovate-pr-in-repo)
+```
+
+`<login>` ist das angemeldete `gh`-Konto aus `gh api user --jq .login` — der Nutzer des Skills, nie ein fester Name. GitHub führt die Review ohnehin unter diesem Konto; die Zeile macht sichtbar, dass der Skill sie geschrieben hat, und der Link führt zu seiner Quelle. Danach, in der Sprache der Commit-Botschaften des Projekts (`git -C "$KLON" log --format=%s -20` zeigt sie): eine Zeile je Paar mit Urteil und Belastbarkeit; der Satz, dass `tool-dep-update-check` geprüft hat, mit dem Pfad des vollen Berichts; und bei Anpassungs-Commits der Satz, dass diese Commits (SHAs) auf dem Branch liegen und Renovates Rebase-Checkbox sie verwerfen würde. Kein Trailer, keine Floskeln. Dann `gh pr review <n> --repo <owner>/<repo> --approve --body-file <datei>`. Schlägt das fehl — „Can not approve your own pull request", fehlendes Recht, Netz —, ist der PR „nicht erteilt: <Ausgabe von gh in einer Zeile>", und du versuchst es nicht erneut: Eine zweite Approval ändert nichts, was die erste nicht konnte.
+
+**Nachlesen:** `gh pr view <n> --repo <owner>/<repo> --json reviewDecision,reviews`. Die eigene Review muss in `reviews` mit `author.login` gleich `<login>` und `state` `APPROVED` stehen — sonst gilt „nicht erteilt", egal was `gh pr review` gemeldet hat. `reviewDecision` liest du dreiteilig: `APPROVED` → zählt; leer → keine Review-Pflicht konfiguriert, die Approval steht; `REVIEW_REQUIRED` trotz eigener Approval → zählt nicht, weil eine Branchregel („Require approval of the most recent reviewable push" nach deinem eigenen Push, oder „Dismiss stale approvals") sie nicht gelten lässt — ein zweiter Mensch muss approven, und du approvst nicht noch einmal; `CHANGES_REQUESTED` → jemand anderes hat Änderungen verlangt, das steht so im Bericht.
+
+**Aufräumen und Nachtrag.** Sind alle freigegebenen PRs durch, gilt für den Klon dieselbe Regel wie in Abschnitt 8: Er geht nur, wenn kein PR mehr ungepushte Commits trägt — auch keiner, der nicht freigegeben wurde — und kein geparkter Branch existiert; sonst bleibt er mit Pfad. Dann der Nachtrag zum Bericht: die Tabelle aus Abschnitt 8 mit gefüllten Spalten Push, Approve und reviewDecision, die Zeile „Freigabe" mit der Antwort, die Klon-Zeile und die nächsten Schritte — der Merge ist Sache des Menschen, und für jeden PR, der nicht freigegeben oder nicht gepusht wurde, stehen die Befehle noch einmal da.
+
+## 8. Bericht und Aufräumen
+
+Vor dem Bericht räumst du den Klon ab — `rm -rf "$KLON"` —, aber nur, wenn nichts Ungepushtes darin liegt: kein Anpassungs-Commit, kein geparkter Branch. Vor der Freigabe ist das nur der Fall, wenn kein PR angepasst wurde; sonst bleibt er stehen, mit Pfad und Rückweg im Bericht, denn die Commits darin sind das Ergebnis dieses Laufs und der Gegenstand der Freigabe. `"$TMP/reports/"` und `"$TMP/prs/"` bleiben in jedem Fall, weil der Bericht dorthin verlinkt; `rm -rf "$TMP"` ist die Aufräumzeile für den Menschen, wenn er fertig ist. Ist das Startverzeichnis ein Git-Repository, zeigt `git status --porcelain` dort denselben Stand wie vor dem Lauf, und das steht als Zeile im Bericht.
 
 ```
 # Renovate-PRs: <owner/repo> — <n> offen, davon <r> Renovate-PRs: <a> approven, <b> angepasst und approven, <c> nicht freigeben, <d> übersprungen
 
 **Klon:** <pfad> — entfernt | bleibt stehen (Anpassungs-Commits auf <head>, … | geparkter Branch <head>-anpassung-rot) → nach dem Push `rm -rf <pfad>`; Berichte unter <tmp>/reports/ → `rm -rf <tmp>` räumt alles
 **Startverzeichnis:** unverändert (`git status --porcelain` leer) | kein Git-Repository
-**Freigabe:** entfällt — dieser Skill pusht nichts und approved nichts; Push, Approve und reviewDecision bleiben „—"
+**Freigabe:** ausstehend — Frage folgt | ja (alle) | Auswahl: #… | nein | keine Antwort — nichts gepusht, nichts approved | entfällt — kein PR mit Aktion
 
 | PR | Paket(e) | Sprung | Urteil | Belastbarkeit | CI | Empfehlung | Commit | Push | Approve | reviewDecision |
 |----|----------|--------|--------|---------------|----|------------|--------|------|---------|----------------|
-| #<n> | <paket a→b> | patch \| minor \| major | <Urteil> | <Belastbarkeit> | grün \| rot \| unbekannt | approven \| angepasst, approven \| nicht freigeben: <Grund> | <sha> (<paket>), … \| — | — | — | — |
+| #<n> | <paket a→b> | patch \| minor \| major | <Urteil> | <Belastbarkeit> | grün \| rot \| unbekannt | approven \| angepasst, approven \| nicht freigeben: <Grund> | <sha> (<paket>), … \| — | gepusht @ <sha> \| nicht gepusht: <Grund> \| — | erteilt \| nicht erteilt: eigener PR \| nicht erteilt: <Grund> \| — | APPROVED \| leer: keine Review-Pflicht \| REVIEW_REQUIRED: zweiter Mensch nötig \| CHANGES_REQUESTED \| — |
 
 ## PR #<n> — <Titel>
 - **Branch:** <head> → <basis>, Autor <login>, gefunden über Autor | Branchpräfix
 - **Prüfung:** <Kopfblock je Paar — Urteil, Belastbarkeit, Auflösung, Voraussetzungen>; voller Bericht: <tmp>/reports/pr-<n>-<paket>.md
 - **Anpassung:** je Paket <sha> „<Betreff>" — <dateien>; Verifikation des Branch-Heads: <befehl> → grün (Commits einzeln ungeprüft) | rot: <Fehler in einer Zeile> → Versuche geparkt auf <head>-anpassung-rot, Branch gleich origin/<head> | keine nötig
+- **Push:** origin/<head> @ <sha> | nicht gepusht: <Grund> | nichts zu pushen   (nach der Freigabe)
+- **Approve:** erteilt — reviewDecision APPROVED | leer: keine Review-Pflicht, Approval steht | REVIEW_REQUIRED: zählt nicht, zweiter Mensch nötig | nicht erteilt: <Grund>   (nach der Freigabe)
 - **Nicht geprüft:** <aus dem Prüfbericht> | nichts
 
 ## Übersprungen
@@ -166,18 +203,18 @@ Vor dem Bericht räumst du den Klon ab — `rm -rf "$KLON"` —, aber nur, wenn 
 - #<n> <Titel> — Manifest und Body widersprechen sich: <beide Fassungen> | keine Dependency-Änderung erkannt: <Pfade> | Subagent ohne Urteil | Rückfrage des Prüf-Skills: <Satz> | Branch nicht erreichbar
 
 ## Nächste Schritte
-- <je „approven": `gh pr review <n> --repo <owner/repo> --approve` — die Approval erteilst nicht du>
-- <je „angepasst": `git -C <klon> push origin <head>` — den Push machst nicht du —, danach `gh pr review <n> --repo <owner/repo> --approve`; Rückweg `git -C <klon> branch -f <head> origin/<head>`>
+- <vor der Freigabe: die Freigabefrage folgt; danach: je approvtem PR der Merge — `gh pr merge <n> --repo <owner/repo>` oder der Weg des Projekts —, den machst nicht du>
+- <je „nicht freigegeben" oder „nicht gepusht": `git -C <klon> push origin <head>` und `gh pr review <n> --repo <owner/repo> --approve`, falls der Mensch es doch will; Rückweg `git -C <klon> branch -f <head> origin/<head>`>
 - <je „Anpassung rot": `git -C <klon> diff origin/<head>..<head>-anpassung-rot` zeigt die Versuche; die Anpassung macht der Mensch mit dem Prüfbericht in der Hand>
 - <je „nicht freigeben": die Vorbedingung aus dem Prüfbericht; bei Konflikt: Renovates Rebase-Checkbox; bei CI rot: der Lauf, den der Mensch ansehen sollte>
 - `rm -rf <tmp>` — Berichte, Bodies und, nach dem Push, der Klon
 ```
 
-Leere Abschnitte bekommen eine Zeile „keine", damit sichtbar bleibt, dass sie geprüft wurden. Der Bericht ist die Ausgabe; auf GitHub schreibst du nichts, und ins Repository nur in den Klon.
+Leere Abschnitte bekommen eine Zeile „keine", damit sichtbar bleibt, dass sie geprüft wurden. Auf GitHub schreibst du nur nach einem Ja und nur zwei Dinge: den Push der eigenen Commits und die Approval.
 
-**Terminierung:** Ein PR, der sich nicht klassifizieren, prüfen oder anpassen lässt, hält den Lauf nicht an — er bekommt seinen Grund, und der nächste PR kommt dran. Abgebrochen wird nur in Abschnitt 1 und 2, wo ohne Werkzeug, Zugang oder Klon kein einziger PR geprüft werden könnte. Ein Subagent bekommt genau einen zweiten Anlauf, eine rote Anpassung höchstens drei; ein Ergebnis wird nie erfunden.
+**Terminierung:** Ein PR, der sich nicht klassifizieren, prüfen, anpassen oder pushen lässt, hält den Lauf nicht an — er bekommt seinen Grund, und der nächste PR kommt dran. Abgebrochen wird nur in Abschnitt 1 und 2, wo ohne Werkzeug, Zugang oder Klon kein einziger PR geprüft werden könnte. Ein Subagent bekommt genau einen zweiten Anlauf, eine rote Anpassung höchstens drei, ein abgewiesener Push höchstens drei, eine Approval genau einen; die Freigabefrage wird einmal gestellt, eine unklare Antwort einmal je Nachricht zurückgefragt; ein Ergebnis wird nie erfunden.
 
-## 7. Haltung
+## 9. Haltung
 
 Die erste Versuchung ist, den Titel zu glauben. `Update dependency lodash to v4.17.21` ist eine Vorlage, kein Beleg; das Paar steht im Diff, und die Tabelle ist die Gegenprobe. Wo beide auseinanderlaufen, ist das ein Befund, keine Auslegungssache.
 
@@ -193,8 +230,12 @@ Die sechste ist, Subagents parallel zu starten, weil es schneller ginge. Sie tei
 
 Die siebte ist, nach jedem Commit zu verifizieren, weil es gründlicher aussieht. Auf einem Gruppen-Branch ist der Lauf nach dem ersten Paket an der Bruchstelle des zweiten rot — ein Ergebnis, das nichts bedeutet und drei Anläufe kostet. Einmal, nach dem letzten Commit.
 
-Die achte ist, eine rote Anpassung grün zu machen, indem man sie zurücknimmt, einen Test anpasst oder ein Paket nachinstalliert. Das Erste macht aus „mit Anpassungen" ein falsches „möglich", das Zweite versteckt den Bruch, das Dritte ist ein anderes Update. Geparkt und berichtet ist ehrlicher als grün.
+Die achte ist, eine rote Anpassung grün zu machen, indem man sie zurücknimmt, einen Test entschärft oder ein Paket nachinstalliert. Das Erste macht aus „mit Anpassungen" ein falsches „möglich", das Zweite versteckt den Bruch, das Dritte ist ein anderes Update. Geparkt und berichtet ist ehrlicher als grün.
 
-Die neunte ist, zu pushen, „weil ohnehin alles grün ist", oder zu amenden, weil Renovates Commit so nah liegt. Der Push ist die Entscheidung des Menschen und steht als Befehl im Bericht; ein Amend überschreibt Renovates Commit, und Renovate setzt darüber hinweg neu auf.
+Die neunte ist, zu pushen, „weil ohnehin alles grün ist", bevor das Ja da ist — oder nach einer Antwort zu pushen, die kein klares Ja war. Der Push geht in ein fremdes Repository und friert Renovates PR ein; er ist die Entscheidung des Menschen, nicht deine Abkürzung.
 
-Und die zehnte ist, den Klon zu löschen, in dem noch Commits liegen, oder das Temp-Verzeichnis mit den Berichten. Der Klon geht erst, wenn nichts Ungepushtes mehr darin ist; die Berichte bleiben; die Aufräumzeile steht im Bericht.
+Die zehnte ist, einen abgewiesenen Push zu erzwingen. `--force` überschriebe Renovates neuen Stand; der Weg ist fetch, rebase der eigenen Commits, erneut pushen — oder aufhören und berichten.
+
+Die elfte ist, zu amenden, weil Renovates Commit so nah liegt, oder einen PR zu approven, dessen Push gescheitert ist. Das eine überschreibt Renovates Commit, das andere genehmigt einen Stand, den es auf GitHub nicht gibt.
+
+Und die zwölfte ist, den Klon zu löschen, bevor `reviewDecision` gelesen ist oder solange noch Commits darin liegen — oder das Temp-Verzeichnis mit den Berichten. Erst nachlesen, dann aufräumen; der Klon geht nur ohne Ungepushtes; die Berichte bleiben; die Aufräumzeile steht im Bericht.
