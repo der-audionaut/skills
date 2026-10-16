@@ -166,7 +166,7 @@ Je freigegebenem PR, in der Reihenfolge der Tabelle, drei Schritte — und erst 
 ```
 <paket> <ausgang> → <ziel>: <Urteil>, <Anpassungen in einem Halbsatz oder „no adaptations needed">; trial run
 <grün oder rot mit den gelaufenen Befehlen und Testzahlen>.
-Checked with [tool-dep-update-check](https://github.com/der-audionaut/skills/tree/main/skills/tool-dep-update-check);
+Checked with tool-dep-update-check
 
 <details><summary>Details</summary>
 <p>
@@ -176,7 +176,7 @@ Checked with [tool-dep-update-check](https://github.com/der-audionaut/skills/tre
 </p>
 </details>
 
-by [tool-check-renovate-pr-in-repo](https://github.com/der-audionaut/skills/tree/main/skills/tool-check-renovate-pr-in-repo)
+by tool-check-renovate-pr-in-repo
 ```
 
 Je Paar eine Kopfzeile und ein eigener `<details>`-Block mit dem vollen Prüfbericht — bei mehreren Paaren mit `<summary>Details: <paket></summary>` —, denn der Bericht liegt sonst nur auf deinem Rechner, und wer den PR liest, soll die Belege sehen, ohne dich zu fragen; die Leerzeilen um den Inhalt braucht GitHub, damit es das Markdown darin rendert. Bei Anpassungs-Commits steht vor der Schlusszeile der Satz, dass diese Commits (SHAs) auf dem Branch liegen und Renovates Rebase-Checkbox sie verwerfen würde. Die Schlusszeile `by [tool-check-renovate-pr-in-repo](…)` ist in jeder Sprache gleich und macht sichtbar, dass der Skill die Review geschrieben hat; einen Kontonamen enthält der Text nicht, denn GitHub führt die Review ohnehin unter dem angemeldeten Konto. Beide Skill-Namen sind Links auf ihre Quelle. Kein Trailer, keine Floskeln. Dann `gh pr review <n> --repo <owner>/<repo> --approve --body-file <datei>`. Schlägt das fehl — „Can not approve your own pull request", fehlendes Recht, Netz —, ist der PR „nicht erteilt: <Ausgabe von gh in einer Zeile>", und du versuchst es nicht erneut: Eine zweite Approval ändert nichts, was die erste nicht konnte.
