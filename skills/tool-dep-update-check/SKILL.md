@@ -3,7 +3,6 @@ name: tool-dep-update-check
 description: Prüft, ob eine Dependency des Projekts von einer Version auf eine Zielversion aktualisiert werden kann — findet sie im Manifest, vermisst den Sprung über die Registry, liest Changelog und Release Notes für den gesamten Bereich, gleicht Bruchstellen mit der tatsächlichen Verwendung im Code ab, prüft Plattform- und Abhängigkeitskonflikte, macht einen Probelauf in einem Wegwerf-Worktree und übergibt ein Urteil mit Belegen, ohne das Projekt zu verändern. Nimmt Dependency, Ausgangsversion und Zielversion als Argumente, optional gefolgt vom Branch, auf dem geprüft wird — ohne Angabe der ausgecheckte Branch.
 argument-hint: "[dependency] [sourceVersion] [targetVersion] [branch]"
 arguments: dependency sourceVersion targetVersion branch
-disable-model-invocation: true
 allowed-tools: Bash Read Grep Glob Edit WebFetch WebSearch
 ---
 
