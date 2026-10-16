@@ -1,6 +1,6 @@
 {
   "name": "skills",
-  "description": "Eigene Skills: news-* erzeugt recherchierte Briefings, plan-* prüft, lintet und setzt Feature-Pläne um, tool-* erledigt Handgriffe wie den Rebase und die Prüfung eines Dependency-Updates.",
+  "description": "Eigene Skills: news-* erzeugt recherchierte Briefings, plan-* prüft, lintet und setzt Feature-Pläne um, tool-* erledigt Handgriffe wie den Rebase, die Prüfung eines Dependency-Updates und die Prüfung und Freigabe von Renovate-PRs.",
   "author": {
     "name": "der-audionaut",
     "url": "https://github.com/der-audionaut"
