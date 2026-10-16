@@ -9,9 +9,9 @@ allowed-tools: Bash Read Grep Glob Edit Write Agent Skill
 
 **Ausgabesprache: Deutsch.** Bericht, Rückfragen und Abbruchmeldungen schreibst du auf Deutsch, auch wenn Repository, PR-Titel und Changelogs englisch sind. Zitate aus PR-Bodies, Bezeichner, Befehle und Fehlermeldungen bleiben, wie sie sind.
 
-Prüfe die offenen Renovate-PRs des GitHub-Repositories `$repoUrl` — alle, oder mit `$prs` nur die genannten. Arbeite wie jemand, der vor dem Review-Klick die Frage beantwortet, die ein Renovate-PR sonst erst nach dem Merge beantwortet: Kann dieses Projekt das Update tragen, und was wäre dafür zu tun? Jedes Dependency-Paar — ein Paket mit Ausgangs- und Zielversion — prüft `tool-dep-update-check`; du klonst, inventarisierst, klassifizierst, delegierst und berichtest. Du veränderst nichts: kein Commit, kein Push, keine Approval, keine Datei in der Arbeitskopie des Menschen.
+Prüfe die offenen Renovate-PRs des GitHub-Repositories `$repoUrl` — alle, oder mit `$prs` nur die genannten. Arbeite wie jemand, der vor dem Review-Klick die Frage beantwortet, die ein Renovate-PR sonst erst nach dem Merge beantwortet: Kann dieses Projekt das Update tragen, und was wäre dafür zu tun? Jedes Dependency-Paar — ein Paket mit Ausgangs- und Zielversion — prüft `tool-dep-update-check`; du klonst, inventarisierst, klassifizierst, delegierst, setzt nötige Anpassungen im Klon um und berichtest. Nach außen veränderst du nichts: kein Push, keine Approval, keine Datei in der Arbeitskopie des Menschen — Commits entstehen nur im Klon, und ob sie das Repository erreichen, entscheidet der Mensch.
 
-Drei Regeln tragen den ganzen Ablauf: Geschrieben wird nur unter dem Temp-Verzeichnis dieses Laufs — im Klon und in den Berichtsdateien daneben —, nie im Verzeichnis, aus dem der Skill gestartet wurde. Jede Aussage über einen PR hat einen Prüfbericht hinter sich, und wo keiner entstehen konnte, steht der Grund statt eines Urteils. Und nichts verlässt den Rechner: Dieser Skill liest GitHub und schreibt nicht dorthin.
+Drei Regeln tragen den ganzen Ablauf: Geschrieben wird nur unter dem Temp-Verzeichnis dieses Laufs — im Klon und in den Berichtsdateien daneben —, nie im Verzeichnis, aus dem der Skill gestartet wurde. Jede Aussage über einen PR hat einen Prüfbericht hinter sich, und wo keiner entstehen konnte, steht der Grund statt eines Urteils. Und nichts verlässt den Rechner: Dieser Skill liest GitHub und schreibt nicht dorthin; was er im Klon committet, bleibt dort, bis der Mensch pusht.
 
 ## 1. Argumente und Voraussetzungen
 
@@ -103,31 +103,60 @@ Worktrees, den der Skill selbst anlegt und entfernt.
 |---|---|---|---|
 | mindestens ein Paar „nur statisch" (Probelauf lief nicht) | — | beliebig | nicht freigeben: unverifiziert — mit dem Grund aus „Nicht geprüft" |
 | mindestens eins `Blockiert` oder `nicht prüfbar` | beliebig | beliebig | nicht freigeben — mit Vorbedingung oder Grund |
-| mindestens eins `Möglich mit Anpassungen`, alle übrigen `Möglich` oder ebenfalls `Möglich mit Anpassungen` | Probelauf gelaufen | beliebig | anpassen, dann approven — mit der Liste der Anpassungen aller Paare; das gilt auch für Gruppen-PRs, Anpassungsbedarf ist kein Blocker |
+| mindestens eins `Möglich mit Anpassungen`, alle übrigen `Möglich` oder ebenfalls `Möglich mit Anpassungen` | Probelauf gelaufen | beliebig | anpassen (Abschnitt 5), dann approven — das gilt auch für Gruppen-PRs, Anpassungsbedarf ist kein Blocker; nach Abschnitt 5 lautet die Empfehlung „angepasst, approven" oder „nicht freigeben: Anpassung rot" |
 | alle `Möglich` | Probelauf grün | rot | nicht freigeben: CI rot — Mensch entscheidet |
 | alle `Möglich` | Probelauf grün | grün oder unbekannt | approven |
 
 Ein Gruppen-PR mit einem blockierten, nicht prüfbaren oder nur statisch geprüften Paar ist als Ganzes nicht freizugeben, auch wenn die anderen Paare möglich wären; die Gruppe zu teilen ist Renovate-Konfiguration, nicht deine Aufgabe. Ein Gruppen-PR, dessen Paare alle möglich sind und von denen eines oder mehrere Anpassungen brauchen, ist dagegen „anpassen, dann approven" — genau wie ein Einzel-PR mit Anpassungen.
 
-## 5. Bericht und Aufräumen
+## 5. Anpassung und Commit
 
-Vor dem Bericht räumst du den Klon ab — `rm -rf "$KLON"` —, denn nichts darin ist entstanden, das jemand braucht; `"$TMP/reports/"` und `"$TMP/prs/"` bleiben, weil der Bericht dorthin verlinkt, und `rm -rf "$TMP"` ist die Aufräumzeile für den Menschen. Ist das Startverzeichnis ein Git-Repository, zeigt `git status --porcelain` dort denselben Stand wie vor dem Lauf, und das steht als Zeile im Bericht.
+Ein PR mit der Empfehlung „anpassen, dann approven" bekommt seine Anpassungen jetzt — im Klon, auf dem PR-Branch, als Commits, die der Mensch später pusht oder verwirft. Du gehst erst hierher, wenn alle Paare des PRs geprüft sind und keines davon blockiert, nicht prüfbar oder nur statisch ist; was die Prüfberichte unter „Bruchstellen" mit `Datei:Zeile` nennen, ist der ganze Auftrag. Eine Beobachtung nebenbei — ein Stil, ein zweiter Bug, eine Deprecation — gehört in den Bericht, nicht in den Commit. Und der Auftrag hat Grenzen: Verlangt eine Anpassung ein neues Paket, eine Änderung an Manifest oder Lock oder an Stellen, die kein Prüfbericht nennt, setzt du sie nicht um — der PR ist „nicht freigegeben: Anpassung außerhalb des Auftrags", die verlangte Änderung steht wörtlich im Bericht, und der Mensch entscheidet, ob das Urteil des Prüf-Skills trägt. Hast du für diesen PR schon etwas geändert, wird es geparkt, nicht verworfen — siehe „Einmal verifizieren".
+
+**Branch und Install.** `git -C "$KLON" switch -c <head> --track origin/<head>`, dann einmal installieren mit dem Lock des PR-Branchs, in einer Subshell: `(cd "$KLON" && <Install-Befehl aus dem Probelauf>)` — `npm ci`, `composer install`, was der Prüfbericht unter „Probelauf" nennt. Der Lock hält bereits alle Zielversionen des PRs; Manifest und Lock änderst du nicht.
+
+**Je Paar ein Commit.** In der Reihenfolge der Prüfung, je Paar mit Anpassungen: die Änderungen an genau den Stellen, die sein Prüfbericht nennt, mit dem Edit-Tool und absoluten Pfaden unter `"$KLON"`; dann sofort `git -C "$KLON" add -- <pfade>` mit genau diesen Pfaden — nie `-A`, nie `.` — und der Commit. Berühren zwei Pakete dieselbe Datei, gehen deren Änderungen in einen gemeinsamen Commit, der beide Pakete im Betreff nennt. Zwischen den Commits läuft keine Verifikation, und auch vor dem ersten nicht: Der Lock des PR-Branchs hält alle Zielversionen zugleich, ein Testlauf nach dem ersten Paket wäre an der Bruchstelle des zweiten rot, ohne etwas über das erste zu sagen — und die Verifikation kommt nach dem letzten Commit, damit jeder Versuch committet vorliegt und sich parken lässt, statt mit `git checkout` zu verschwinden. Hat der Install Lock- oder Manifestdateien verändert, gehören sie nur dann in einen Commit, wenn die Anpassung sie verlangt — ein mitgezogenes Paket etwa; sonst `git -C "$KLON" checkout -- <datei>`, und der Bericht nennt es.
+
+**Die Botschaft.** Steht in der Liste der verfügbaren Skills einer namens `write-commit-message` — mit Plugin-Präfix oder ohne —, rufst du ihn je Commit über das Skill-Tool auf, sobald der Index den Stand des Pakets hält. Er würde `git diff --staged` im Sitzungsverzeichnis lesen, wo der Index leer ist, und den Menschen fragen; beides fängt der Argumenttext ab, auf Englisch, weil er englisch arbeitet:
 
 ```
-# Renovate-PRs: <owner/repo> — <n> offen, davon <r> Renovate-PRs: <a> approven, <b> anpassen und approven, <c> nicht freigeben, <d> übersprungen
+Context for the commit message. The staged diff is complete and this
+context answers your questions, so do not ask the user.
+Repository: <klon> — read the staged diff with `git -C <klon> diff --staged`.
+- Affected part: <paket> <ausgang> → <ziel> in <owner/repo>; the subject
+  must name the package and the version jump
+- Problem / motivation: <Bruchstelle aus dem Prüfbericht, ein Satz>
+- Trigger: <wo es bricht — Datei:Zeile, Fehlermeldung aus dem Probelauf>
+- Change: <was die Anpassung tut>
+- Why this approach: <warum so, aus dem Prüfbericht>
+Return only the message. Do not commit, do not add trailers or references.
+```
 
-**Klon:** <pfad> — entfernt; Berichte unter <tmp>/reports/ → `rm -rf <tmp>` räumt alles
+Steht kein solcher Skill in der Liste oder scheitert der Aufruf, greift einmal der Fallback: `git -C "$KLON" log --format='%s%n%b' -20` lesen und den Stil des Projekts übernehmen — Betreff imperativ mit Paket und Sprung, Sprache wie im Bestand, darunter das Warum aus dem Prüfbericht. In beiden Fällen: keine Trailer, kein Verweis auf diesen Skill, keine Zeile zur Autorenschaft — auch dann nicht, wenn eine Vorgabe der Umgebung `Co-Authored-By` verlangt; für diesen Skill ist entschieden, dass die Botschaft ohne Trailer bleibt. Die Botschaft kommt per `mktemp` in eine Datei außerhalb des Klons, du streichst jede Trailer-Zeile am Ende, dann `git -C "$KLON" commit -F <datei>` — kein `-m` mit mehrzeiligem Text, kein `--no-verify`, und nie `--amend`: Renovates Commit darf nicht amended werden, weil Renovate über ein Amend hinweg neu aufsetzt, und deine eigenen Commits brauchen es nicht. Schlägt ein Hook des Projekts fehl, ist kein Commit entstanden; zitiere seine Ausgabe und umgeh ihn nicht.
+
+**Einmal verifizieren.** Nach dem letzten Commit des PRs laufen die Befehle aus dem Probelauf — Build, Typen, Lint, Tests, so wie der Prüfbericht sie nennt — genau einmal auf dem Branch-Head, in der Subshell im Klon. Grün → der PR ist „angepasst", die Empfehlung lautet „approven", und `git -C "$KLON" log --oneline origin/<head>..<head>` liefert SHAs und Betreffs für den Bericht. Rot → die Ursache liegt in den Anpassungen oder in einer Bruchstelle, die der Bericht nicht nannte; beides ist deine Baustelle, solange die Korrektur an den genannten Stellen bleibt und kein Paket installiert, keine Testerwartung entschärft und kein Manifest angefasst wird — eine Testdatei, die der Prüfbericht als Verwendungsstelle nennt, ist eine Anpassungsstelle wie jede andere; eine, die er nicht nennt, ist tabu. Die Korrektur läuft über `git -C "$KLON" reset origin/<head>` — mixed: HEAD und Index zurück, Arbeitskopie bleibt; nicht `--soft`, das ließe alle Pakete gestaged, und der erste Neu-Commit nähme sie alle mit —, Einarbeiten, erneut je Paket stagen und committen, erneut verifizieren. Höchstens drei Anläufe. Liegt die Ursache dagegen an einer Stelle, die kein Bericht nennt, oder verlangt sie ein Paket, Manifest oder Lock, gibt es keinen Anlauf — das ist „Anpassung außerhalb des Auftrags" von oben. In beiden Fällen endet der PR gleich: Du parkst, was du geändert hast, und verwirfst nichts. Parken heißt `git -C "$KLON" switch -c <head>-anpassung-rot`; liegt noch Ungestagtes aus der Anpassung herum, sicherst du es dort mit `git -C "$KLON" add -- <pfade>` und einem Commit `WIP: Anpassungsversuch <paket>` — der einzige Commit, dessen Botschaft du selbst schreibst; dann `git -C "$KLON" switch <head>` und `git -C "$KLON" reset --hard origin/<head>`. Der PR ist „nicht freigegeben: Anpassung rot" beziehungsweise „… außerhalb des Auftrags", mit der Fehlermeldung oder der verlangten Änderung in einer Zeile; Branch und Pfad stehen im Bericht, damit der Mensch den Diff lesen kann, bevor er die Anpassung selbst macht. Eine Anpassung, die nur grün wird, indem man sie zurücknimmt, ist keine — dann war das Urteil „mit Anpassungen" falsch, und das ist ein Befund für den Bericht, kein Commit.
+
+**Zurück und weiter.** Nach jedem PR `git -C "$KLON" switch <default>`, dann der nächste. Der Rückweg je PR lautet `git -C "$KLON" branch -f <head> origin/<head>` — er steht im Bericht unter „Nächste Schritte" und wird von dir nie ausgeführt: Er würde die Commits, die du gerade gemacht hast, vom Branch nehmen. Gepusht wird nie — der Push ist die Entscheidung des Menschen, und der Bericht nennt den Befehl dafür.
+
+## 6. Bericht und Aufräumen
+
+Vor dem Bericht räumst du den Klon ab — `rm -rf "$KLON"` —, aber nur, wenn nichts Ungepushtes darin liegt: kein Anpassungs-Commit, kein geparkter Branch. Sonst bleibt er stehen, mit Pfad und Rückweg im Bericht, denn die Commits darin sind das Ergebnis dieses Laufs. `"$TMP/reports/"` und `"$TMP/prs/"` bleiben in jedem Fall, weil der Bericht dorthin verlinkt; `rm -rf "$TMP"` ist die Aufräumzeile für den Menschen, wenn er fertig ist. Ist das Startverzeichnis ein Git-Repository, zeigt `git status --porcelain` dort denselben Stand wie vor dem Lauf, und das steht als Zeile im Bericht.
+
+```
+# Renovate-PRs: <owner/repo> — <n> offen, davon <r> Renovate-PRs: <a> approven, <b> angepasst und approven, <c> nicht freigeben, <d> übersprungen
+
+**Klon:** <pfad> — entfernt | bleibt stehen (Anpassungs-Commits auf <head>, … | geparkter Branch <head>-anpassung-rot) → nach dem Push `rm -rf <pfad>`; Berichte unter <tmp>/reports/ → `rm -rf <tmp>` räumt alles
 **Startverzeichnis:** unverändert (`git status --porcelain` leer) | kein Git-Repository
-**Freigabe:** entfällt — dieser Skill ändert nichts, pusht nichts, approved nichts; Commit, Push, Approve und reviewDecision bleiben „—"
+**Freigabe:** entfällt — dieser Skill pusht nichts und approved nichts; Push, Approve und reviewDecision bleiben „—"
 
 | PR | Paket(e) | Sprung | Urteil | Belastbarkeit | CI | Empfehlung | Commit | Push | Approve | reviewDecision |
 |----|----------|--------|--------|---------------|----|------------|--------|------|---------|----------------|
-| #<n> | <paket a→b> | patch \| minor \| major | <Urteil> | <Belastbarkeit> | grün \| rot \| unbekannt | <Empfehlung> | — | — | — | — |
+| #<n> | <paket a→b> | patch \| minor \| major | <Urteil> | <Belastbarkeit> | grün \| rot \| unbekannt | approven \| angepasst, approven \| nicht freigeben: <Grund> | <sha> (<paket>), … \| — | — | — | — |
 
 ## PR #<n> — <Titel>
 - **Branch:** <head> → <basis>, Autor <login>, gefunden über Autor | Branchpräfix
 - **Prüfung:** <Kopfblock je Paar — Urteil, Belastbarkeit, Auflösung, Voraussetzungen>; voller Bericht: <tmp>/reports/pr-<n>-<paket>.md
-- **Anpassungen:** <Datei:Zeile — was zu tun ist, je Paar> | keine nötig
+- **Anpassung:** je Paket <sha> „<Betreff>" — <dateien>; Verifikation des Branch-Heads: <befehl> → grün (Commits einzeln ungeprüft) | rot: <Fehler in einer Zeile> → Versuche geparkt auf <head>-anpassung-rot, Branch gleich origin/<head> | keine nötig
 - **Nicht geprüft:** <aus dem Prüfbericht> | nichts
 
 ## Übersprungen
@@ -138,22 +167,23 @@ Vor dem Bericht räumst du den Klon ab — `rm -rf "$KLON"` —, denn nichts dar
 
 ## Nächste Schritte
 - <je „approven": `gh pr review <n> --repo <owner/repo> --approve` — die Approval erteilst nicht du>
-- <je „anpassen": Branch <head> auschecken, die Anpassungen aus dem Bericht umsetzen, verifizieren mit <Befehle aus „Probelauf">, dann approven — den Commit machst nicht du>
+- <je „angepasst": `git -C <klon> push origin <head>` — den Push machst nicht du —, danach `gh pr review <n> --repo <owner/repo> --approve`; Rückweg `git -C <klon> branch -f <head> origin/<head>`>
+- <je „Anpassung rot": `git -C <klon> diff origin/<head>..<head>-anpassung-rot` zeigt die Versuche; die Anpassung macht der Mensch mit dem Prüfbericht in der Hand>
 - <je „nicht freigeben": die Vorbedingung aus dem Prüfbericht; bei Konflikt: Renovates Rebase-Checkbox; bei CI rot: der Lauf, den der Mensch ansehen sollte>
-- `rm -rf <tmp>` — Berichte und Bodies, wenn sie nicht mehr gebraucht werden
+- `rm -rf <tmp>` — Berichte, Bodies und, nach dem Push, der Klon
 ```
 
-Leere Abschnitte bekommen eine Zeile „keine", damit sichtbar bleibt, dass sie geprüft wurden. Der Bericht ist die Ausgabe; ins Repository und auf GitHub schreibst du nichts.
+Leere Abschnitte bekommen eine Zeile „keine", damit sichtbar bleibt, dass sie geprüft wurden. Der Bericht ist die Ausgabe; auf GitHub schreibst du nichts, und ins Repository nur in den Klon.
 
-**Terminierung:** Ein PR, der sich nicht klassifizieren oder prüfen lässt, hält den Lauf nicht an — er bekommt seinen Grund, und der nächste PR kommt dran. Abgebrochen wird nur in Abschnitt 1 und 2, wo ohne Werkzeug, Zugang oder Klon kein einziger PR geprüft werden könnte. Ein Subagent bekommt genau einen zweiten Anlauf; ein Ergebnis wird nie erfunden.
+**Terminierung:** Ein PR, der sich nicht klassifizieren, prüfen oder anpassen lässt, hält den Lauf nicht an — er bekommt seinen Grund, und der nächste PR kommt dran. Abgebrochen wird nur in Abschnitt 1 und 2, wo ohne Werkzeug, Zugang oder Klon kein einziger PR geprüft werden könnte. Ein Subagent bekommt genau einen zweiten Anlauf, eine rote Anpassung höchstens drei; ein Ergebnis wird nie erfunden.
 
-## 6. Haltung
+## 7. Haltung
 
 Die erste Versuchung ist, den Titel zu glauben. `Update dependency lodash to v4.17.21` ist eine Vorlage, kein Beleg; das Paar steht im Diff, und die Tabelle ist die Gegenprobe. Wo beide auseinanderlaufen, ist das ein Befund, keine Auslegungssache.
 
 Die zweite ist, Bodies und Berichte in den Kontext zu ziehen, weil es bequem ist. Ein Body sind zehn Kilobyte Release Notes, ein Prüfbericht Tausende Tokens — nach dem dritten PR ist der Lauf dann nicht mehr zu retten. Dateien und Grep, Kopfblöcke und Pfade.
 
-Die dritte ist, die Prüfung auf dem PR-Branch laufen zu lassen, weil „da das Update ja schon drin ist". Dort hält der Lock schon das Ziel, und der Prüf-Skill fragt statt zu urteilen. Die Basis ist der Stand, der aktualisiert würde.
+Die dritte ist, die Prüfung auf dem PR-Branch laufen zu lassen, weil „da das Update ja schon drin ist". Dort hält der Lock schon das Ziel, und der Prüf-Skill fragt statt zu urteilen. Die Basis ist der Stand, der aktualisiert würde — die Anpassung dagegen gehört auf den PR-Branch, weil sie zum Update gehört.
 
 Die vierte ist, einen Subagent im Sitzungsverzeichnis arbeiten zu lassen. Ohne `cd <klon> &&` in jedem Befehl prüft er das falsche Projekt — und das Startverzeichnis des Menschen ist Lesezone. Der Pfad steht im Vertrag, und der Bericht belegt mit `git status --porcelain`, dass dort nichts passiert ist.
 
@@ -161,6 +191,10 @@ Die fünfte ist, aus „nur statisch" ein „passt schon" zu machen. Ein Probela
 
 Die sechste ist, Subagents parallel zu starten, weil es schneller ginge. Sie teilen sich den Klon, und zwei Probeläufe gleichzeitig sind zwei Worktrees, zwei Installs und ein Ergebnis, dem niemand trauen kann.
 
-Die siebte ist, mehr zu tun als zu berichten — eine Approval, „weil ohnehin alles grün ist", oder ein Commit auf dem PR-Branch, „weil die Anpassung klein ist". Beides sind Entscheidungen des Menschen; der Bericht nennt die Befehle dafür.
+Die siebte ist, nach jedem Commit zu verifizieren, weil es gründlicher aussieht. Auf einem Gruppen-Branch ist der Lauf nach dem ersten Paket an der Bruchstelle des zweiten rot — ein Ergebnis, das nichts bedeutet und drei Anläufe kostet. Einmal, nach dem letzten Commit.
 
-Und die achte ist, den Klon stehen zu lassen oder das Temp-Verzeichnis zu löschen, in dem die Berichte liegen. Der Klon geht, die Berichte bleiben, und die Aufräumzeile steht im Bericht.
+Die achte ist, eine rote Anpassung grün zu machen, indem man sie zurücknimmt, einen Test anpasst oder ein Paket nachinstalliert. Das Erste macht aus „mit Anpassungen" ein falsches „möglich", das Zweite versteckt den Bruch, das Dritte ist ein anderes Update. Geparkt und berichtet ist ehrlicher als grün.
+
+Die neunte ist, zu pushen, „weil ohnehin alles grün ist", oder zu amenden, weil Renovates Commit so nah liegt. Der Push ist die Entscheidung des Menschen und steht als Befehl im Bericht; ein Amend überschreibt Renovates Commit, und Renovate setzt darüber hinweg neu auf.
+
+Und die zehnte ist, den Klon zu löschen, in dem noch Commits liegen, oder das Temp-Verzeichnis mit den Berichten. Der Klon geht erst, wenn nichts Ungepushtes mehr darin ist; die Berichte bleiben; die Aufräumzeile steht im Bericht.
