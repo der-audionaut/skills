@@ -161,13 +161,25 @@ Je freigegebenem PR, in der Reihenfolge der Tabelle, drei Schritte — und erst 
 
 **Push**, nur wenn Anpassungs-Commits auf `<head>` liegen: `git -C "$KLON" push origin <head>` — ohne `--force`, ohne `--force-with-lease`, niemals. Weist der Remote den Push ab, hat Renovate den Branch zwischen Klon und jetzt neu aufgesetzt (Referenz, Abschnitt E): `git -C "$KLON" fetch origin <head>`, dann auf dem Branch `git -C "$KLON" switch <head> && git -C "$KLON" rebase origin/<head>` — das trägt genau deine Commits aus `origin/<head>..<head>` auf den neuen Stand —, dann erneut pushen. Höchstens drei Anläufe; ein Konflikt im Rebase ist ein Abbruch mit `git -C "$KLON" rebase --abort`. Danach gilt der PR als „nicht gepusht: <Grund>", bekommt **keine** Approval — eine Approval auf einen PR, dessen Anpassung nicht auf dem Branch liegt, wäre falsch — und der nächste PR kommt dran. Ein PR mit Aktion `approve` ohne Commits überspringt diesen Schritt.
 
-**Approve** — entfällt ohne Versuch, wenn der PR vom eigenen Konto stammt (Abschnitt 3): Die Spalte sagt dann „nicht erteilt: eigener PR", und der Push allein ist das Ergebnis. Sonst kommt der Approval-Text per `mktemp` in eine Datei außerhalb des Klons. Erste Zeile, in jeder Sprache gleich:
+**Approve** — entfällt ohne Versuch, wenn der PR vom eigenen Konto stammt (Abschnitt 3): Die Spalte sagt dann „nicht erteilt: eigener PR", und der Push allein ist das Ergebnis. Sonst kommt der Approval-Text per `mktemp` in eine Datei außerhalb des Klons — in der Sprache der Commit-Botschaften des Projekts (`git -C "$KLON" log --format=%s -20` zeigt sie) und in genau dieser Form:
 
 ```
-<login> by [tool-check-renovate-pr-in-repo](https://github.com/der-audionaut/skills/tree/main/skills/tool-check-renovate-pr-in-repo)
+<paket> <ausgang> → <ziel>: <Urteil>, <Anpassungen in einem Halbsatz oder „no adaptations needed">; trial run
+<grün oder rot mit den gelaufenen Befehlen und Testzahlen>.
+Checked with [tool-dep-update-check](https://github.com/der-audionaut/skills/tree/main/skills/tool-dep-update-check);
+
+<details><summary>Details</summary>
+<p>
+
+<der vollständige Inhalt von <tmp>/reports/pr-<n>-<paket>.md>
+
+</p>
+</details>
+
+by [tool-check-renovate-pr-in-repo](https://github.com/der-audionaut/skills/tree/main/skills/tool-check-renovate-pr-in-repo)
 ```
 
-`<login>` ist das angemeldete `gh`-Konto aus `gh api user --jq .login` — der Nutzer des Skills, nie ein fester Name. GitHub führt die Review ohnehin unter diesem Konto; die Zeile macht sichtbar, dass der Skill sie geschrieben hat, und der Link führt zu seiner Quelle. Danach, in der Sprache der Commit-Botschaften des Projekts (`git -C "$KLON" log --format=%s -20` zeigt sie): eine Zeile je Paar mit Urteil und Belastbarkeit; der Satz, dass `tool-dep-update-check` geprüft hat, mit dem Pfad des vollen Berichts; und bei Anpassungs-Commits der Satz, dass diese Commits (SHAs) auf dem Branch liegen und Renovates Rebase-Checkbox sie verwerfen würde. Kein Trailer, keine Floskeln. Dann `gh pr review <n> --repo <owner>/<repo> --approve --body-file <datei>`. Schlägt das fehl — „Can not approve your own pull request", fehlendes Recht, Netz —, ist der PR „nicht erteilt: <Ausgabe von gh in einer Zeile>", und du versuchst es nicht erneut: Eine zweite Approval ändert nichts, was die erste nicht konnte.
+Je Paar eine Kopfzeile und ein eigener `<details>`-Block mit dem vollen Prüfbericht — bei mehreren Paaren mit `<summary>Details: <paket></summary>` —, denn der Bericht liegt sonst nur auf deinem Rechner, und wer den PR liest, soll die Belege sehen, ohne dich zu fragen; die Leerzeilen um den Inhalt braucht GitHub, damit es das Markdown darin rendert. Bei Anpassungs-Commits steht vor der Schlusszeile der Satz, dass diese Commits (SHAs) auf dem Branch liegen und Renovates Rebase-Checkbox sie verwerfen würde. Die Schlusszeile `by [tool-check-renovate-pr-in-repo](…)` ist in jeder Sprache gleich und macht sichtbar, dass der Skill die Review geschrieben hat; einen Kontonamen enthält der Text nicht, denn GitHub führt die Review ohnehin unter dem angemeldeten Konto. Beide Skill-Namen sind Links auf ihre Quelle. Kein Trailer, keine Floskeln. Dann `gh pr review <n> --repo <owner>/<repo> --approve --body-file <datei>`. Schlägt das fehl — „Can not approve your own pull request", fehlendes Recht, Netz —, ist der PR „nicht erteilt: <Ausgabe von gh in einer Zeile>", und du versuchst es nicht erneut: Eine zweite Approval ändert nichts, was die erste nicht konnte.
 
 **Nachlesen:** `gh pr view <n> --repo <owner>/<repo> --json reviewDecision,reviews`. Die eigene Review muss in `reviews` mit `author.login` gleich `<login>` und `state` `APPROVED` stehen — sonst gilt „nicht erteilt", egal was `gh pr review` gemeldet hat. `reviewDecision` liest du dreiteilig: `APPROVED` → zählt; leer → keine Review-Pflicht konfiguriert, die Approval steht; `REVIEW_REQUIRED` trotz eigener Approval → zählt nicht, weil eine Branchregel („Require approval of the most recent reviewable push" nach deinem eigenen Push, oder „Dismiss stale approvals") sie nicht gelten lässt — ein zweiter Mensch muss approven, und du approvst nicht noch einmal; `CHANGES_REQUESTED` → jemand anderes hat Änderungen verlangt, das steht so im Bericht.
 
