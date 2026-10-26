@@ -74,7 +74,7 @@ Bestimme die Oberfläche, die das Projekt von der Dependency tatsächlich benutz
 - Mittelbare Verwendung: Konfiguration in YAML, XML, JSON oder Umgebungsvariablen, die Klassen, Optionen oder Plugins der Dependency nennt; Framework-Verdrahtung über Service-Definitionen, Attribute, Annotationen, Dekoratoren; Build-Werkzeuge und Testaufbau, die sie als Plugin oder Preset laden; Klassennamen in Zeichenketten; ihre Kommandozeile in Skripten, Makefile und CI.
 - Re-Exporte durch eigene Module: Ein Wrapper im Projekt, der die Dependency einmal importiert, hat viele Aufrufer, die sie nie nennen — folge dem Wrapper.
 
-Dann jeder Bruch aus Abschnitt 4 gegen diese Oberfläche: **betroffen** mit `Datei:Zeile`, und zwar alle Stellen, nicht die erste — oder **nicht betroffen** mit dem Grep-Muster, das leer geblieben ist. Das Muster gehört in den Bericht, weil ein „nicht verwendet" ohne Muster nicht nachprüfbar ist. Bei Verhaltensänderungen liest du die Aufrufstellen und sagst, ob die Änderung dort ankommt und ob ein Test es bemerken würde.
+Dann jeder Bruch aus Abschnitt 4 gegen diese Oberfläche: **betroffen** mit `Datei:Zeile`, und zwar alle Stellen, nicht die erste, samt dem Grep-Muster, das sie gefunden hat — oder **nicht betroffen** mit dem Grep-Muster, das leer geblieben ist. Das Muster gehört in beiden Fällen in den Bericht: Ein „nicht verwendet" ohne Muster ist nicht nachprüfbar, und ein „betroffen" ohne Muster lässt sich nach der Anpassung nicht wiederholen, um zu zeigen, dass keine Stelle übrig ist. Bei Verhaltensänderungen liest du die Aufrufstellen und sagst, ob die Änderung dort ankommt und ob ein Test es bemerken würde.
 
 Ist die Dependency das Framework der Anwendung — Symfony, Spring Boot, Django, Rails, Angular —, ist die Oberfläche die ganze Anwendung, und der Abgleich per Grep trägt nicht. Dann ist der Weg über Deprecations der wichtigste: Lass die Tests auf dem Ausgangsstand mit sichtbaren Deprecations laufen (die Schalter je Ökosystem stehen in der Referenz); was der Ausgang schon anmahnt, entfernt das Ziel. Gibt es für genau diesen Sprung ein Migrationswerkzeug — Rector-Sets, OpenRewrite-Rezepte, `ng update`, Framework-Codemods —, lass es im Worktree aus Abschnitt 6 laufen; sein Diff ist die Liste der nötigen Anpassungen. Es ist eine Befundquelle, nicht das Urteil.
 
@@ -119,7 +119,7 @@ Getrennt davon die **Belastbarkeit:** Probelauf grün, Probelauf rot oder nur st
 ## Bruchstellen
 ### <API oder Verhalten> — seit <version>
 - **Änderung:** <ein Satz, mit Quelle: URL oder Datei, zitierte Zeile>
-- **Betroffen:** <Datei:Zeile, …> | nicht verwendet — geprüft mit `<grep-muster>`
+- **Betroffen:** <Datei:Zeile, …> — gefunden mit `<grep-muster>` | nicht verwendet — geprüft mit `<grep-muster>`
 - **Anpassung:** <was zu tun ist> | keine
 
 ## Deprecations
