@@ -56,6 +56,14 @@ Je Dimension: trifft sie zu? Wenn ja, welcher Beleg im Code oder im Plan stützt
 - Sind die Fehlerfälle aus den Randbedingungen testbar beschrieben?
 - Gibt es einen manuellen Prüfpfad für das, was Tests nicht abdecken?
 
+## Verhaltenserhalt (Refactoring-Pläne)
+Trifft zu, wenn der Plan einen Abschnitt `## Problemfelder` oder eine gleichbedeutende Überschrift hat; sonst überspringen.
+- Hat jeder Schritt den Punkt `**Verhaltensschutz:**`? Ein Grep mit Zeilennummern auf `^## |^### Schritt |^- \*\*Verhaltensschutz:\*\*` zeigt es: Unter `## Schritte` folgt auf jede Schritt-Überschrift genau ein Treffer; Strategien und Historie zählen nicht. Ein Schritt ohne diesen Punkt ist ein Blocker.
+- Existieren die genannten Tests (Beleg aus Faktentreue), oder geht der Bewegung ein Charakterisierungstest-Schritt in einer früheren Welle voraus?
+- Ändert eine Strategie oder ein Schritt beobachtbares Verhalten — API, Ausgabe, Persistenz, Reihenfolge?
+- Hat jeder Befund der Schwere Hoch eine Strategie, oder trägt der Grund, mit dem er unter Nicht-Ziele steht?
+- Zeigen die Abhängigkeiten der Zielarchitektur nach innen, oder ist jede Ausnahme benannt und begründet (Framework-Basisklassen, Active Record), und erreicht die Schrittfolge die Zielarchitektur?
+
 ## Betrieb
 - Feature-Flag oder direkter Rollout? Wer schaltet, nach welchem Kriterium?
 - Rollback möglich, und zwar ohne Datenverlust?
