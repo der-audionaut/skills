@@ -6,7 +6,7 @@ Teil A steuert das Sammeln der Problemfelder, Teil B die Wahl der Strategien. Be
 
 ## Teil A — Problemkategorien
 
-Der Beleg eines `P` ist gemessen oder ein Verdacht. Gemessen: Der Wert steht in der Baseline oder einer im Repository abgelegten Messung, und der Befund verweist auf die Zeile der Zielwerte. Gemessen ist nur, was die Baseline ausgibt — ein eigener Lauf, um einen Verdacht zu belegen, ist der Schritt „Messen zuerst", kein Beleg. Verdacht: Fundstelle `Datei:Zeile`, das Muster und die Datenmenge, ab der es trägt. Ein Muster auf einer Menge, die laut Fixtures, Konfiguration oder Fachlichkeit klein bleibt, ist kein Befund; Stil ohne Laufzeitwirkung auch nicht — Lesbarkeit ist Sache von `/plan-refactoring-create`. Was sich nicht belegen lässt, ist eine offene Frage, kein Befund. Vermutete Fehler bekommen kein `P`; sie stehen im eigenen Abschnitt der Vorlage.
+Der Beleg eines `P` ist gemessen oder ein Verdacht. Gemessen: Der Wert steht in der Baseline oder einer im Repository abgelegten Messung, und der Befund verweist auf die Zeile der Zielwerte. Gemessen ist nur, was die Baseline ausgibt — ein eigener Lauf, um einen Verdacht zu belegen, ist der Schritt „Messen zuerst", kein Beleg. Verdacht: Fundstelle `Datei:Zeile`, das Muster und die Datenmenge, ab der es trägt. Ein Muster auf einer Menge, die laut Fixtures, Konfiguration oder Fachlichkeit klein bleibt, ist kein Befund; Stil ohne Laufzeitwirkung auch nicht — Lesbarkeit ist Sache von `/plan-refactoring-create`, höchstens ein Satz unter Nicht-Ziele. Was sich nicht belegen lässt, ist eine offene Frage, kein Befund. Vermutete Fehler bekommen kein `P`; sie stehen im eigenen Abschnitt der Vorlage.
 
 ### Engpässe
 
@@ -14,7 +14,7 @@ Der Beleg eines `P` ist gemessen oder ein Verdacht. Gemessen: Der Wert steht in 
 - Abfragen oder externe Aufrufe in Schleifen (N+1).
 - Blockierende Arbeit im Request-Pfad, die in einen Job gehört.
 - Sperren und serielle Wartezeiten, die unabhängige Arbeit hintereinander zwingen.
-- Synchrone Ein- und Ausgabe in Hot Paths.
+- Synchrone Ein- und Ausgabe in Hot Paths, die der Vorgang braucht — wiederholtes Lesen derselben Quelle ist Unnötige Arbeit.
 
 **Beleg**
 - Gemessen: Anteil des Pfads an der Laufzeit. Verdacht: die Schleife oder der Aufruf und die Zahl der Durchläufe.
@@ -40,6 +40,7 @@ Der Beleg eines `P` ist gemessen oder ein Verdacht. Gemessen: Der Wert steht in 
 
 **Erkennungsmerkmale**
 - Rendern unveränderter Teile.
+- Lesen oder Laden derselben unveränderten Quelle je Durchlauf — Datei, Konfiguration, Abfrage.
 - Laden nicht benötigter Daten oder ganzer Listen, wo Ausschnitt oder Virtualisierung reicht.
 - Arbeit vor dem ersten Bedarf, deren Ergebnis oft ungenutzt bleibt.
 
