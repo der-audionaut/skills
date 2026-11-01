@@ -1,6 +1,6 @@
-# Prüfdimensionen für Feature-Pläne
+# Prüfdimensionen
 
-Je Dimension: trifft sie zu? Wenn ja, welcher Beleg im Code oder im Plan stützt deine Bewertung?
+Je Dimension: trifft sie zu? Wenn ja, welcher Beleg im Code oder im Plan stützt deine Bewertung? Überschriften und Punktnamen, die eine Dimension nennt, meinen das Element dieser Bedeutung — in einem fremdsprachigen Plan suchst und grepst du ihre Übersetzung.
 
 ## Scope und Vollständigkeit
 - Beschreibt der Plan, was **nicht** dazugehört? Ein Plan ohne Nicht-Ziele wächst während der Umsetzung.
@@ -55,6 +55,15 @@ Je Dimension: trifft sie zu? Wenn ja, welcher Beleg im Code oder im Plan stützt
 - Welche Testebene je Änderung (Unit, Integration, End-to-End)?
 - Sind die Fehlerfälle aus den Randbedingungen testbar beschrieben?
 - Gibt es einen manuellen Prüfpfad für das, was Tests nicht abdecken?
+
+## Verhaltenserhalt (Pläne mit Problemfeldern)
+Trifft zu, wenn der Plan einen Abschnitt `## Problemfelder` hat; sonst überspringen. Eine Frage mit dem Vorsatz „Bei `## …`:" gilt nur, wenn der Plan diesen Abschnitt hat — was der Plan nicht hat, prüfst du nicht, auch wenn ein Schritt inhaltlich danach aussieht.
+- Hat jeder Schritt den Punkt `**Verhaltensschutz:**`? Ein Grep mit Zeilennummern auf `^## |^### Schritt |^- \*\*(Verhaltensschutz|Messung):\*\*` zeigt es: Unter `## Schritte` folgt auf jede Schritt-Überschrift genau ein Verhaltensschutz-Treffer und, bei `## Zielwerte`, genau ein Messung-Treffer; Strategien und Historie zählen nicht. Ein Schritt ohne Verhaltensschutz ist ein Blocker.
+- Existieren die genannten Tests (Beleg aus Faktentreue), oder geht der Bewegung ein Charakterisierungstest-Schritt in einer früheren Welle voraus?
+- Ändert eine Strategie oder ein Schritt beobachtbares Verhalten — API, Ausgabe, Persistenz, Reihenfolge?
+- Hat jeder Befund der Schwere Hoch eine Strategie, oder trägt der Grund, mit dem er unter Nicht-Ziele steht?
+- Bei `## Zielarchitektur`: Zeigen ihre Abhängigkeiten nach innen, oder ist jede Ausnahme benannt und begründet (Framework-Basisklassen, Active Record), und erreicht die Schrittfolge die Zielarchitektur?
+- Bei `## Zielwerte`: Verweist der Punkt `**Messung:**` bei jedem Schritt, dessen `**Betroffen:**` eine Datei aus `### Hot Paths` nennt, auf eine Zeile der Zielwerte, sonst auf „keine" mit Grund? Trägt jede Zeile der Zielwerte einen Messbefehl oder „nicht gemessen", und nennt ein Schritt mit eigenem Vorher-Wert den Schritt, der ihn erzeugt hat? Ein Hot-Path-Schritt ohne Messung ist ein Blocker.
 
 ## Betrieb
 - Feature-Flag oder direkter Rollout? Wer schaltet, nach welchem Kriterium?
