@@ -1,87 +1,87 @@
 ---
 name: plan-implement
-description: Setzt einen einzelnen Schritt aus einem Feature-Plan um — erst Entwurf im Sinne eines Systemarchitekten, dann die minimale produktionsreife Implementierung, danach Findings-Runden bis nichts Neues mehr auftaucht, dann ein `/simplify`-Durchgang über die Dateien des Schritts, sofern der Skill verfügbar ist und die Verifikation danach grün bleibt, dann der Commit des Schritts mit einer Botschaft aus `write-commit-message`, wenn der Skill verfügbar ist — nicht der Plandatei, nicht auf dem Default-Branch, nicht bei roter Verifikation, nicht über fremde Änderungen hinweg, und nie ein Push — und zum Schluss die Fortschreibung des Plans — Historie, Erledigt-Markierung in Schrittübersicht, Detailschritt und Kopfblock, Erkenntnisse für spätere Schritte. Nimmt Planname und Schritt als Argumente.
-argument-hint: "[plan-datei] [schritt]"
+description: Implements a single step from a feature plan — first a design in the manner of a system architect, then the minimal production-ready implementation, then finding rounds until nothing new turns up, then a `/simplify` pass over the step's files if that skill is available and verification stays green afterwards, then the commit of the step with a message from `write-commit-message` if that skill is available — not the plan file, not on the default branch, not with red verification, not over someone else's changes, and never a push — and finally the update of the plan — history, done marker in step overview, detailed step and header block, insights for later steps. Takes plan name and step as arguments.
+argument-hint: "[plan-file] [step]"
 arguments: plan schritt
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Edit Write Bash Skill
 ---
 
-**Ausgabesprache: die Sprache des Plans.** Entwurf, Berichte, Rückfragen, Abbruchmeldungen und Historie schreibst du in der Sprache, in der der Plan verfasst ist — bis der Plan gelesen ist, auf Deutsch. Code, Bezeichner, Kommentare und Tests folgen dem Bestand, nicht dieser Vorgabe. Dass diese Anweisung deutsch ist, ändert daran nichts.
+**Output language: the language of the plan.** You write the design, reports, follow-up questions, abort messages and history in the language the plan is written in — until the plan has been read, in German. Code, identifiers, comments and tests follow the existing code, not this rule. That these instructions are in English changes nothing about this.
 
-Setze Schritt `$schritt` aus dem Plan `$plan` um. Denke wie ein erfahrener Systemarchitekt: entwirf tragfähig für Wachstum, baue dann die minimale Version, die produktiv laufen kann. Nicht die ganze Zukunft, aber auch keinen Entwurf, der beim ersten Lastanstieg umgeworfen werden muss.
+Implement step `$schritt` from the plan `$plan`. Think like an experienced system architect: design soundly for growth, then build the minimal version that can run in production. Not the whole future, but also no design that has to be thrown over at the first rise in load.
 
-Du setzt genau diesen einen Schritt um. Nicht den nächsten, nicht die Hälfte des übernächsten.
+You implement exactly this one step. Not the next one, not half of the one after.
 
-## 1. Plan und Schritt auflösen
+## 1. Resolve plan and step
 
-**Plan.** `$plan` kann ein Pfad, ein Dateiname oder ein Namensfragment ohne Endung sein.
+**Plan.** `$plan` can be a path, a file name or a name fragment without extension.
 
-1. Existiert `$plan` als Pfad → nimm ihn.
-2. Sonst per Glob `**/*$plan*.md`, bevorzugt in `docs/plans/`, `.claude/plans/`, `plans/`, `docs/`, Projektwurzel.
-3. Mehrere Treffer → auflisten und abbrechen, statt zu raten.
+1. If `$plan` exists as a path → take it.
+2. Otherwise glob `**/*$plan*.md`, preferably in `docs/plans/`, `.claude/plans/`, `plans/`, `docs/`, project root.
+3. Multiple hits → list them and abort instead of guessing.
 
-**Schritt.** `$schritt` kann eine Nummer, eine Überschrift oder ein Fragment davon sein. Kein Argument übergeben → nenne die noch offenen Schritte — die, deren Zeile in der Schrittübersicht in der Spalte `Welle` keinen Zusatz `✓ erledigt` trägt — und frage, welcher gemeint ist. Mehrdeutig → dasselbe.
+**Step.** `$schritt` can be a number, a heading or a fragment of one. No argument given → name the still open steps — those whose row in the step overview carries no `✓ erledigt` suffix in the `Welle` column — and ask which one is meant. Ambiguous → the same.
 
-**Sprache.** Die Ausgabesprache ist die Sprache des Plans. Kopfblock und Überschriften entscheiden — nicht Zitate, Bezeichner oder Codeblöcke, die in einem deutschen Plan oft englisch sind. Die Sprache ändert den Text, nicht die Struktur: Das Berichtsformat bleibt, nur seine Beschriftungen werden übersetzt.
+**Language.** The output language is the language of the plan. The header block and headings decide — not quotes, identifiers or code blocks, which in a German plan are often English. The language changes the text, not the structure: the report format stays, only its labels are translated.
 
-**Historie.** Wo diese Anweisung `## Umsetzungs-Historie` oder `## Review-Historie` sagt, ist der Abschnitt dieser Bedeutung gemeint, gleich in welcher Sprache seine Überschrift steht — ein Plan kann aus `/plan-create` in einer anderen Sprache stammen. Einen vorhandenen erkennst du auch in Übersetzung und schreibst ihn fort, einen neuen legst du in der Plansprache an. Die Finding-Kennung F bleibt unübersetzt.
+**History.** Where these instructions say `## Umsetzungs-Historie` or `## Review-Historie`, they mean the section with that meaning, whatever language its heading is in — a plan can come from `/plan-create` in another language. You recognize an existing one in translation too and continue it; a new one you create in the plan language. The finding ID F stays untranslated.
 
-**Ausgangslage.** Bevor du eine Datei anfasst, hältst du fest, wie du das Repository vorgefunden hast — später ist das die einzige Quelle, aus der sich Fremdes von Eigenem unterscheiden lässt, und Abschnitt 5 braucht jeden dieser Werte:
+**Starting state.** Before you touch any file, you record how you found the repository — later this is the only source from which someone else's changes can be told apart from yours, and section 5 needs every one of these values:
 
-- Der ausgecheckte Branch: `git symbolic-ref --quiet --short HEAD` — leer bei losgelöstem HEAD.
-- Die Pfade, die jetzt schon geändert, gestaged oder unversioniert sind: `git status --porcelain=v1 -uall`.
-- Ob der Index leer ist: `git diff --cached --quiet`.
-- Ob eine Operation läuft: `.git/MERGE_HEAD`, `.git/rebase-merge`, `.git/rebase-apply` oder `.git/CHERRY_PICK_HEAD` vorhanden.
-- Der Default-Branch: Das Remote ist das des Upstreams (`git config branch.<branch>.remote`), sonst `origin`; dann `git symbolic-ref --quiet --short refs/remotes/<remote>/HEAD` ohne das Präfix `<remote>/`. Fehlt der Verweis, gilt `main` oder `master`, sofern lokal vorhanden; gibt es auch die nicht, ist der Default-Branch unbekannt, und Abschnitt 5 fragt nach.
+- The checked-out branch: `git symbolic-ref --quiet --short HEAD` — empty on a detached HEAD.
+- The paths that are already modified, staged or untracked now: `git status --porcelain=v1 -uall`.
+- Whether the index is empty: `git diff --cached --quiet`.
+- Whether an operation is in progress: `.git/MERGE_HEAD`, `.git/rebase-merge`, `.git/rebase-apply` or `.git/CHERRY_PICK_HEAD` present.
+- The default branch: the remote is the upstream's (`git config branch.<branch>.remote`), otherwise `origin`; then `git symbolic-ref --quiet --short refs/remotes/<remote>/HEAD` without the prefix `<remote>/`. If the reference is missing, `main` or `master` applies, if present locally; if those don't exist either, the default branch is unknown, and section 5 asks.
 
-Ist das Verzeichnis kein Git-Repository, notierst du das: Abschnitt 5 entfällt dann mit diesem Grund, alles andere läuft wie gewohnt.
+If the directory is not a Git repository, you note that: section 5 is then skipped for that reason, everything else runs as usual.
 
-Lies den ganzen Plan, nicht nur den Schritt. Ein Schritt, der isoliert gelesen wird, wird isoliert falsch umgesetzt. Prüfe in der `## Umsetzungs-Historie` und in einer eventuellen `## Review-Historie`, was frühere Schritte bereits verändert oder als Erkenntnis hinterlassen haben.
+Read the whole plan, not just the step. A step read in isolation gets implemented wrong in isolation. Check in the `## Umsetzungs-Historie` and in any `## Review-Historie` what earlier steps have already changed or left behind as insight.
 
-## 2. Entwurf vor Code
+## 2. Design before code
 
-Bevor du eine Zeile schreibst, halte den Entwurf für diesen Schritt fest — kurz, in Prosa, keine Tapete. Die Dimensionen stehen in `${CLAUDE_SKILL_DIR}/references/entwurfsdimensionen.md`; behandle davon nur, was dieser Schritt tatsächlich berührt:
+Before you write a line, record the design for this step — briefly, in prose, no wallpaper. The dimensions are in `${CLAUDE_SKILL_DIR}/references/design-dimensions.md`; cover only those this step actually touches:
 
-Architektur und Einordnung · Komponentenschnitt · Datenfluss · Schnittstellen und API · Datenmodell und Migration · Caching und Invalidierung · Verifikationsweg
+Architecture and placement · Component split · Data flow · Interfaces and API · Data model and migration · Caching and invalidation · Verification path
 
-Zwei Leitplanken, die dabei gegeneinander arbeiten und beide gelten:
+Two guardrails that work against each other and both apply:
 
-- **Tragfähig entwerfen.** Schnittstellen, Datenmodell und Zuständigkeiten so schneiden, dass die zehnfache Last oder der zweite Anwendungsfall keine Neuschreibung erzwingt.
-- **Minimal bauen.** Keine Abstraktion ohne zweiten Aufrufer, kein Cache ohne belegten Bedarf, keine Konfigurierbarkeit ohne zweiten Wert. Was der Entwurf vorsieht, aber dieser Schritt nicht braucht, notierst du als Folgeschritt statt es zu bauen.
+- **Design soundly.** Cut interfaces, data model and responsibilities so that ten times the load or the second use case does not force a rewrite.
+- **Build minimally.** No abstraction without a second caller, no cache without proven need, no configurability without a second value. Whatever the design provides for but this step does not need, you note as a follow-up step instead of building it.
 
-Weicht der Entwurf vom Plan ab, sag das jetzt und begründe es. Trägt der Plan an dieser Stelle gar nicht, brich ab und melde das, statt still etwas anderes zu bauen.
+If the design deviates from the plan, say so now and justify it. If the plan does not hold at this point at all, abort and report that instead of silently building something else.
 
-## 3. Umsetzen
+## 3. Implement
 
-- Folge den Mustern des Bestands. Ein zweites, konkurrierendes Muster ist teurer als ein unschönes, das zum Rest passt.
-- Fehlerfälle gehören in denselben Durchgang wie der Happy Path, nicht in eine spätere Runde.
-- Kein Scope-Zuwachs. Was dir unterwegs auffällt und nicht zu diesem Schritt gehört, wandert in "Erkenntnisse für spätere Schritte".
-- Tests für das, was dieser Schritt behauptet zu können — auf der Ebene, die das Projekt üblicherweise nutzt.
+- Follow the patterns of the existing code. A second, competing pattern is more expensive than an ugly one that fits the rest.
+- Error cases belong in the same pass as the happy path, not in a later round.
+- No scope creep. Whatever you notice along the way that does not belong to this step goes into "Erkenntnisse für spätere Schritte" (insights for later steps).
+- Tests for what this step claims to be able to do — at the level the project usually uses.
 
-## 4. Findings-Runden
+## 4. Finding rounds
 
-Nach der Umsetzung prüfst du deine eigene Arbeit in Runden. Eine Runde besteht aus: verifizieren → Findings sammeln → beheben → erneut verifizieren.
+After implementing, you check your own work in rounds. A round consists of: verify → collect findings → fix → verify again.
 
-**Verifizieren heißt ausführen.** Build, Tests, Linter, Typprüfung — die Befehle, die das Projekt vorsieht. Ein Finding-Durchgang, der nur liest, findet die Hälfte. Läuft etwas nicht ausführbar, sag das und benenne, was dadurch ungeprüft bleibt.
+**Verifying means running.** Build, tests, linter, type check — the commands the project provides. A finding pass that only reads finds half. If something cannot be run, say so and name what remains unchecked as a result.
 
-Die Finding-Kategorien stehen in `${CLAUDE_SKILL_DIR}/references/entwurfsdimensionen.md`. Jedes Finding bekommt eine stabile ID (F1, F2, …), eine Fundstelle `Datei:Zeile` und eine Einstufung:
+The finding categories are in `${CLAUDE_SKILL_DIR}/references/design-dimensions.md`. Every finding gets a stable ID (F1, F2, …), a location `Datei:Zeile` and a classification:
 
-- **Blocker** — falsches, unsicheres oder nicht lauffähiges Verhalten.
-- **Sollte** — trägt, aber weicht vom Plan ab, lässt einen Fehlerfall offen oder bricht mit dem Bestand.
-- **Optional** — Geschmack, kein Risiko.
+- **Blocker** — wrong, insecure or non-working behavior.
+- **Sollte** (should) — holds, but deviates from the plan, leaves an error case open or breaks with the existing code.
+- **Optional** — taste, no risk.
 
-Blocker und Sollte behebst du in derselben Runde. Optional-Findings sammelst du und legst sie am Ende vor, ohne sie eigenmächtig umzusetzen.
+You fix Blocker and Sollte findings in the same round. Optional findings you collect and present at the end, without implementing them on your own authority.
 
-**Terminierung:** Die Schleife endet, wenn eine vollständige Runde keinen neuen Blocker und kein neues Sollte-Finding mehr hervorbringt und die Verifikation grün ist. Sag das dann klar und hör auf zu suchen.
+**Termination:** the loop ends when a complete round produces no new Blocker and no new Sollte finding and verification is green. Then say so clearly and stop searching.
 
-Damit die Schleife auch wirklich konvergiert:
+So that the loop actually converges:
 
-- Ab Runde 2 keine neuen Optional-Findings, außer sie sind durch eine Korrektur entstanden.
-- Ein Finding, das du bewusst nicht behebst, wird mit Begründung abgelehnt und nicht in der nächsten Runde neu aufgemacht.
-- Nach drei Runden ohne Fortschritt hörst du auf und benennst, woran es hängt: fehlende Information, ein Plan, der nicht trägt, oder ein Entwurf, der die falsche Grundannahme hat. Das entscheidet der Mensch.
+- From round 2 on, no new Optional findings unless they were caused by a fix.
+- A finding you deliberately don't fix is rejected with a justification and not reopened in the next round.
+- After three rounds without progress, you stop and name what it hinges on: missing information, a plan that doesn't hold, or a design with the wrong underlying assumption. The human decides that.
 
-Bericht je Runde — den der Schlussrunde gibst du erst nach Abschnitt 6 aus, damit er die Zeilen `Simplify:`, `Commit:` und `Plan:` tragen kann; Zwischenrunden berichten sofort:
+Report per round — the final round's report you output only after section 6, so that it can carry the lines `Simplify:`, `Commit:` and `Plan:`; intermediate rounds report immediately:
 
 ```
 # Umsetzung: <Plan> — Schritt <X> — Runde <N>
@@ -109,71 +109,71 @@ Bericht je Runde — den der Schlussrunde gibst du erst nach Abschnitt 6 aus, da
 - <was der Plan an anderer Stelle jetzt anders sehen muss>
 ```
 
-Der Abschnitt „Nicht zugeordnet" entfällt, wenn er leer wäre.
+The section "Nicht zugeordnet" (unassigned) is dropped if it would be empty.
 
-## 5. Committen
+## 5. Commit
 
-Ist die Schleife grün terminiert, committest du den Schritt — nur ihn, nur auf dem Branch, den du vorgefunden hast, und nie mit einem Push. Vorher läuft genau einmal `/simplify` über die Dateien des Schritts, sofern der Skill verfügbar ist — siehe „Vereinfachen" unten. Der Commit ist Ergebnis, nicht Bedingung: Jede Vorbedingung, die nicht gilt, ist ein Grund „kein Commit", nie ein Grund abzubrechen. Bericht und Plan werden in jedem Fall geschrieben; der Grund steht in der Zeile `Commit:`. Ist das Verzeichnis kein Git-Repository, ist genau das der Grund, und der Rest dieses Abschnitts entfällt.
+Once the loop has terminated green, you commit the step — only it, only on the branch you found, and never with a push. Before that, `/simplify` runs exactly once over the step's files, if that skill is available — see "Simplify" below. The commit is a result, not a condition: every precondition that does not hold is a reason for "no commit", never a reason to abort. Report and plan are written in any case; the reason goes in the `Commit:` line. If the directory is not a Git repository, exactly that is the reason, and the rest of this section is skipped.
 
-**Vorbedingungen.** Alle fünf müssen gelten:
+**Preconditions.** All five must hold:
 
-- Die Schleife ist grün terminiert — nicht nach drei Runden ohne Fortschritt abgebrochen, Verifikation grün. Einen roten Stand committest du nicht, auch nicht „um nichts zu verlieren": Im Arbeitsverzeichnis ist er sicher, in der Historie wäre er eine Behauptung, die nicht stimmt.
-- Ein Branch ist ausgecheckt, und es ist nicht der Default-Branch. Auf `main` committet der Mensch, nicht du. Ist der Default-Branch unbekannt, entscheidet der Mensch — siehe „Rückfrage" unten.
-- Der Index war beim Start leer. Fremde gestagte Änderungen kämen sonst mit in den Commit.
-- Es läuft kein Merge, Rebase oder Cherry-Pick. Ein `git commit` würde die fremde Operation abschließen; der Grund heißt dann „Merge läuft", nicht „Index nicht leer".
-- Keine Datei, die du geändert hast, war beim Start schon geändert. Dort lassen sich Fremdes und Eigenes nicht mehr trennen — und einen Teil-Commit der übrigen Dateien gibt es nicht, weil ein halber Schritt in der Historie schlechter ist als keiner. Die Plandatei zählt hier nicht; sie wird ohnehin nie gestaged.
+- The loop terminated green — not aborted after three rounds without progress, verification green. You do not commit a red state, not even "so as not to lose anything": in the working directory it is safe, in the history it would be a claim that isn't true.
+- A branch is checked out, and it is not the default branch. On `main` the human commits, not you. If the default branch is unknown, the human decides — see "Follow-up question" below.
+- The index was empty at the start. Otherwise someone else's staged changes would end up in the commit.
+- No merge, rebase or cherry-pick is in progress. A `git commit` would conclude the foreign operation; the reason is then "Merge läuft", not "Index nicht leer".
+- No file you changed was already modified at the start. There, someone else's changes and yours can no longer be separated — and there is no partial commit of the remaining files, because half a step in the history is worse than none. The plan file does not count here; it is never staged anyway.
 
-**Dateien des Schritts.** Maßgeblich ist deine eigene Liste: die Vereinigung der „Geändert"-Einträge aller Runden — geänderte, angelegte, gelöschte und umbenannte Pfade — zuzüglich der Erzeugnisse, die du einem dieser Pfade ausdrücklich zuordnest: das Lockfile zum geänderten Manifest, der Snapshot zum geänderten Test, der generierte Code zur geänderten Quelle. Jede Zuordnung bekommt einen Halbsatz im Bericht. Zu jedem geänderten Manifest gehört die Frage nach seinem Lockfile — ein vergessenes hinterlässt einen Commit, der ohne es nicht baut.
+**Files of the step.** What counts is your own list: the union of the "Geändert" entries of all rounds — modified, created, deleted and renamed paths — plus the products you explicitly assign to one of these paths: the lockfile for the changed manifest, the snapshot for the changed test, the generated code for the changed source. Each assignment gets a half-sentence in the report. Every changed manifest raises the question of its lockfile — a forgotten one leaves a commit that doesn't build without it.
 
-`git status` dient der Kontrolle, nicht der Ergänzung. Jeder Pfad deiner Liste muss dort erscheinen; fehlt einer, stimmt die Liste nicht, und du klärst das, bevor du staged. Pfade, die jetzt in `git status` stehen, aber weder in der Ausgangslage noch in deiner Liste — Artefakte der Verifikation, vom Formatierer angefasste Dateien, Unbekanntes —, staged du **nicht**: Sie kommen in den Bericht unter „Nicht zugeordnet", und der Mensch entscheidet danach. Pfade aus der Ausgangslage, die du nicht angefasst hast, bleiben unberührt. Die Plandatei staged du nie.
+`git status` serves as a check, not as a supplement. Every path on your list must appear there; if one is missing, the list is wrong, and you clear that up before you stage. Paths that now appear in `git status` but are neither in the starting state nor on your list — verification artifacts, files touched by the formatter, unknowns — you do **not** stage: they go into the report under "Nicht zugeordnet", and the human decides afterwards. Paths from the starting state that you did not touch stay untouched. You never stage the plan file.
 
-**Stagen.** `git add -- <pfade>` mit der Pfadliste — nie `-A`, nie `.`.
+**Stage.** `git add -- <paths>` with the path list — never `-A`, never `.`.
 
-**Vereinfachen.** Steht in der Liste der verfügbaren Skills einer namens `simplify` — mit Plugin-Präfix oder ohne —, rufst du ihn jetzt, nach dem Stagen und vor der Botschaft, genau einmal über das Skill-Tool auf. Er prüft geänderten Code auf Wiederverwendung, Vereinfachung und Effizienz und ändert ihn direkt im Arbeitsverzeichnis. Der Index ist dabei dein Sicherungspunkt: Er hält den Stand, den die Schleife grün verifiziert hat — auch neue Dateien, die ungestaged in keinem Diff auftauchen —, und alles, was der Skill ändert, steht danach als ungestagte Differenz dagegen. Ohne Ziel prüft er den ganzen Branch bis `@{upstream}`, also auch die Commits früherer Schritte; deshalb gibst du ihm die Dateien des Schritts als Ziel mit, auf Englisch, weil er englisch arbeitet:
+**Simplify.** If the list of available skills contains one named `simplify` — with plugin prefix or without — you invoke it now, after staging and before the message, exactly once via the Skill tool. It checks changed code for reuse, simplification and efficiency and changes it directly in the working directory. The index is your backup point here: it holds the state the loop verified green — including new files that, unstaged, would show up in no diff — and everything the skill changes then stands against it as an unstaged difference. Without a target it checks the whole branch up to `@{upstream}`, i.e. also the commits of earlier steps; that is why you give it the step's files as target, in English, because it works in English:
 
 ```
-Review target: the uncommitted changes in <pfad1>, <pfad2>, … — see
-`git diff HEAD -- <pfade>`. This is one plan step, not the whole branch:
+Review target: the uncommitted changes in <path1>, <path2>, … — see
+`git diff HEAD -- <paths>`. This is one plan step, not the whole branch:
 only simplify lines this diff adds or changes, touch no other file, keep the
 behaviour the tests cover, and do not commit.
 ```
 
-Was er getan hat, liest du danach aus `git status --porcelain=v1 -uall` und `git diff`, nicht aus seiner Zusammenfassung. Dann entscheidest du über den Durchgang im Ganzen — behalten oder verwerfen, nie eine Auswahl: Der Stand im Index war grün, und ein halb übernommener Durchgang ist ein dritter Stand, den niemand geprüft hat.
+What it did you read afterwards from `git status --porcelain=v1 -uall` and `git diff`, not from its summary. Then you decide on the pass as a whole — keep or discard, never a selection: the state in the index was green, and a half-adopted pass is a third state that nobody has checked.
 
-- **Pfade außerhalb deiner Liste** hat er nicht anzufassen. Hat er es doch getan, ist der Durchgang verworfen, weil deine Dateien sonst von einer Änderung abhängen könnten, die nicht mit in den Commit kommt. Aufräumen: `git checkout -- <pfade>` für deine Liste und für geänderte Pfade, die in der Ausgangslage sauber waren; neu angelegte Pfade, die es dort nicht gab, löschst du. Einen Pfad, der in der Ausgangslage schon geändert oder unversioniert war, kannst du nicht zurücksetzen, ohne Fremdes zu verlieren: Er bleibt, wie er ist, und steht unter „Nicht zugeordnet" mit dem Hinweis, dass der Skill ihn angefasst hat.
-- **Verifizieren** heißt auch hier ausführen: dieselben Befehle wie in Abschnitt 4, einmal. Grün → `git add -- <pfade>` mit deiner Liste, damit der Index den vereinfachten Stand hält; die Zeile `Verifikation:` im Schlussbericht nennt diesen Lauf. Rot → `git checkout -- <pfade>` stellt den Stand aus dem Index wieder her, und die Zeile `Simplify:` sagt „verworfen — Verifikation rot: <Befehl>". Einen zweiten Anlauf gibt es nicht, und die Findings-Schleife öffnest du dafür nicht wieder.
-- **Nichts geändert** → weiter mit der Botschaft; die Zeile `Simplify:` sagt „keine Änderungen".
+- **Paths outside your list** it has no business touching. If it did anyway, the pass is discarded, because otherwise your files could depend on a change that doesn't go into the commit. Clean up: `git checkout -- <paths>` for your list and for modified paths that were clean in the starting state; newly created paths that did not exist there you delete. A path that was already modified or untracked in the starting state you cannot reset without losing someone else's work: it stays as it is and is listed under "Nicht zugeordnet" with the note that the skill touched it.
+- **Verifying** means running here too: the same commands as in section 4, once. Green → `git add -- <paths>` with your list, so the index holds the simplified state; the `Verifikation:` line in the final report names this run. Red → `git checkout -- <paths>` restores the state from the index, and the `Simplify:` line says "verworfen — Verifikation rot: <Befehl>". There is no second attempt, and you do not reopen the finding loop for it.
+- **Nothing changed** → continue with the message; the `Simplify:` line says "keine Änderungen".
 
-Steht kein solcher Skill in der Liste, scheitert der Aufruf oder fällt der Commit weg, weil eine Vorbedingung nicht gilt, entfällt der Durchgang ohne Ersatz, und die Zeile `Simplify:` nennt den Grund. Einen eigenen Vereinfachungsdurchgang baust du nicht nach: Die Findings-Runden haben den Code geprüft, und was ihnen an Vereinfachung entging, hält den Commit nicht auf.
+If no such skill is on the list, the invocation fails, or the commit is dropped because a precondition does not hold, the pass is skipped without replacement, and the `Simplify:` line names the reason. You do not rebuild your own simplification pass: the finding rounds have checked the code, and whatever simplification they missed does not hold up the commit.
 
-**Botschaft.** Steht in der Liste der verfügbaren Skills einer namens `write-commit-message` — mit Plugin-Präfix (`write-commit-message:write-commit-message`) oder ohne —, rufst du ihn jetzt, wenn der Index den endgültigen Stand hält, über das Skill-Tool auf: Er liest `git diff --staged` und liefert Betreff und Body. Was er sonst beim Menschen erfragen würde, gibst du ihm als Argumenttext mit — auf Englisch, weil er englisch arbeitet, und gefüllt aus Plan und Schritt:
+**Message.** If the list of available skills contains one named `write-commit-message` — with plugin prefix (`write-commit-message:write-commit-message`) or without — you invoke it now, when the index holds the final state, via the Skill tool: it reads `git diff --staged` and delivers subject and body. Whatever it would otherwise ask the human, you pass as argument text — in English, because it works in English, and filled in from plan and step:
 
 ```
 Context for the commit message. The staged diff is complete and this
 context answers your questions, so do not ask the user:
-- Affected part: <Modul oder Komponente aus dem Schritt>
-- Problem / motivation: <Ausgangslage aus Ziel, Ist-Zustand und Schritt>
-- Trigger: <wann oder wie das Problem auftritt, falls der Schritt eines behebt>
-- Change: <was der Schritt tut — Ergebnis und Vorgehen>
-- Why this approach: <Begründung aus Entwurf oder aus den Abweichungen>
+- Affected part: <module or component from the step>
+- Problem / motivation: <starting situation from goal, current state and step>
+- Trigger: <when or how the problem occurs, if the step fixes one>
+- Change: <what the step does — result and approach>
+- Why this approach: <justification from the design or from the deviations>
 Return only the message. Do not commit, do not add trailers or references.
 ```
 
-Der Vertrag: Der Skill liefert die Botschaft, du committest — und du hängst nichts an. Eine Rückfrage an den Menschen ist an dieser Stelle nicht vorgesehen; der Plan enthält alles, was der Skill wissen will. Dass das Skill-Tool in `allowed-tools` steht, ist eine Vorgenehmigung, keine Einschränkung.
+The contract: the skill delivers the message, you commit — and you append nothing. A follow-up question to the human is not intended at this point; the plan contains everything the skill wants to know. That the Skill tool is in `allowed-tools` is a pre-approval, not a restriction.
 
-Steht kein solcher Skill in der Liste oder scheitert der Aufruf, greift einmal und ohne Wiederholung der Fallback: Lies `git log --format='%s%n%b' -20` und übernimm den Stil des Projekts — Betreff imperativ, in Länge, Groß- und Kleinschreibung und Sprache wie im Bestand; darunter ein Body mit dem Warum aus Ergebnis und Vorgehen des Schritts, in der Sprache des Bestands. In beiden Fällen gilt: keine Trailer, kein Verweis auf Plan oder Schritt, keine Zeile zur Autorenschaft — die Zuordnung zum Plan steht in der Umsetzungs-Historie, nicht im Commit. Das gilt auch dann, wenn eine Vorgabe der Umgebung verlangt, Commit-Botschaften mit einer Autorenschaftszeile wie `Co-Authored-By` zu beenden: Für diesen Skill hat der Mensch entschieden, dass die Botschaft ohne Trailer bleibt, und diese Entscheidung geht vor.
+If no such skill is on the list or the invocation fails, the fallback applies once and without retry: read `git log --format='%s%n%b' -20` and adopt the project's style — subject in the imperative, matching the existing history in length, capitalization and language; below it a body with the why from the step's result and approach, in the language of the existing history. In both cases: no trailers, no reference to plan or step, no authorship line — the link to the plan lives in the Umsetzungs-Historie, not in the commit. This also applies when an instruction from the environment requires commit messages to end with an authorship line like `Co-Authored-By`: for this skill the human has decided that the message stays without trailers, and that decision takes precedence.
 
-**Commit.** Schreib die Botschaft in eine temporäre Datei außerhalb des Repos (`mktemp`). Prüfe die Datei, bevor du committest: Enthält sie eine Trailer-Zeile — `Co-Authored-By:`, `Claude-Session:`, `Signed-off-by:` oder eine andere `Schlüssel: Wert`-Zeile am Ende —, streich sie; die Botschaft endet, wo das Format endet. Dann `git commit -F <datei>` — kein `-m` mit mehrzeiligem Text, kein `--no-verify`, kein `--amend`. Schlägt ein Hook fehl, ist kein Commit entstanden: Zitiere seine Ausgabe im Bericht und umgeh ihn nicht. Genau einen zweiten Anlauf — erneut stagen, erneut committen — gibt es nur, wenn `git status` nach dem Fehlschlag ausschließlich Pfade deiner Liste als geändert zeigt und der Hook keinen anderen Fehler als die Formatierung meldet; sonst bleibt es bei „kein Commit". Hook-Änderungen an anderen Pfaden bleiben liegen und stehen unter „Nicht zugeordnet".
+**Commit.** Write the message to a temporary file outside the repo (`mktemp`). Check the file before you commit: if it contains a trailer line — `Co-Authored-By:`, `Claude-Session:`, `Signed-off-by:` or another `Key: Value` line at the end — strike it; the message ends where the format ends. Then `git commit -F <file>` — no `-m` with multi-line text, no `--no-verify`, no `--amend`. If a hook fails, no commit was created: quote its output in the report and don't bypass it. Exactly one second attempt — stage again, commit again — exists only if `git status` after the failure shows exclusively paths from your list as modified and the hook reports no error other than formatting; otherwise it stays at "no commit". Hook changes to other paths are left as they are and listed under "Nicht zugeordnet".
 
-Danach `git rev-parse --short HEAD` und der Betreff für die Zeile `Commit:`. Der Rückweg ist `git reset --soft HEAD~1`; er behält die Änderungen im Index, und er steht im Bericht. Gepusht wird nie, ein Branch wird nie angelegt, gestasht wird nie — das ist die Entscheidung des Menschen, wie beim Rebase.
+Afterwards `git rev-parse --short HEAD` and the subject for the `Commit:` line. The way back is `git reset --soft HEAD~1`; it keeps the changes in the index, and it goes in the report. You never push, never create a branch, never stash — that is the human's decision, as with a rebase.
 
-**Rückfrage.** Ist der Default-Branch unbekannt — kein `<remote>/HEAD`, kein `main`, kein `master` —, committest du nicht auf eigene Faust. Schreib zuerst den Plan fort wie bei „kein Commit" mit dem Grund „Default-Branch nicht erkennbar, Rückfrage offen", gib den Bericht aus und stell dann als Letztes die Frage, ob der ausgecheckte Branch der Default-Branch ist und ob committet werden soll. Auf ein Ja staged, vereinfachst und committest du wie oben, änderst die `Commit:`-Zeile in der Historie auf den SHA und gibst einen Nachtrag zum Bericht aus. Bleibt die Antwort aus, bleibt es beim fortgeschriebenen Plan ohne Commit. Die Frage steht am Ende und nicht schon in Abschnitt 1, damit Umsetzung und Plan fertig sind, bevor der Lauf auf eine Antwort wartet.
+**Follow-up question.** If the default branch is unknown — no `<remote>/HEAD`, no `main`, no `master` — you do not commit on your own. First update the plan as for "no commit" with the reason "Default-Branch nicht erkennbar, Rückfrage offen", output the report, and then, as the very last thing, ask whether the checked-out branch is the default branch and whether to commit. On a yes, you stage, simplify and commit as above, change the `Commit:` line in the history to the SHA, and output an addendum to the report. If no answer comes, it stays at the updated plan without a commit. The question comes at the end and not already in section 1, so that implementation and plan are finished before the run waits for an answer.
 
-## 6. Plan fortschreiben
+## 6. Update the plan
 
-Erst wenn die Findings-Schleife terminiert ist, fasst du den Plan an — und das gilt auch, wenn sie nach drei Runden ohne Fortschritt abgebrochen wurde oder die Verifikation rot geblieben ist: Dann steht der Grund in der Zeile `Commit:` und der Stand, an dem es hängt, in der Historie. Fortschreiben heißt vier Dinge, und keines davon ist optional: die Historie, die Markierung des Schritts an drei Stellen, die Erkenntnisse in den späteren Schritten und die Nachprüfung der berührten Schritte.
+Only once the finding loop has terminated do you touch the plan — and that also applies if it was aborted after three rounds without progress or verification stayed red: then the reason is in the `Commit:` line and the state it hinges on is in the history. Updating means four things, and none of them is optional: the history, the step's marker in three places, the insights in the later steps, and the re-check of the affected steps.
 
-**Historie.** Lege den Abschnitt `## Umsetzungs-Historie` am Ende der Datei an, falls er fehlt:
+**History.** Create the section `## Umsetzungs-Historie` at the end of the file if it is missing:
 
 ```
 ## Umsetzungs-Historie
@@ -187,34 +187,34 @@ Erst wenn die Findings-Schleife terminiert ist, fasst du den Plan an — und das
 - Erkenntnis: Schritt 5 kann den alten Export-Pfad nicht mehr voraussetzen
 ```
 
-In einem fremdsprachigen Plan trägt der neue Abschnitt die übersetzte Überschrift — `## Implementation History` — und seine Einträge folgen der Plansprache; die Vorlage hier ist deutsch, weil diese Anweisung es ist, nicht weil der Abschnitt es sein müsste. Die Beschriftung `Commit:` wird mitübersetzt; SHA und Betreff bleiben, wie Git sie hat.
+In a plan in another language, the new section carries the translated heading — `## Implementation History` — and its entries follow the plan language; the template here is German because German is the default output language, not because the section would have to be. The label `Commit:` is translated along with it; SHA and subject stay as Git has them.
 
-**Markierung des Schritts.** Die Historie steht am Ende der Datei, und dort schaut niemand zuerst hin. Wer den Plan öffnet, sieht die Schrittübersicht — und steht dort noch `W1` ohne Zusatz, ist der Schritt für ihn offen, egal, was die Historie weiter unten sagt. Deshalb markierst du den Schritt an drei Stellen, an allen drei, in genau dieser Form:
+**Marking the step.** The history sits at the end of the file, and nobody looks there first. Whoever opens the plan sees the step overview — and if it still says `W1` without a suffix there, the step is open for them, no matter what the history says further down. That is why you mark the step in three places, all three, in exactly this form:
 
-1. **Schrittübersicht** — die Tabelle oben im Plan, in der Vorlage `## Arbeitsschritte`: In der Zeile des Schritts bekommt die Spalte `Welle` den Zusatz `✓ erledigt`; aus `W1` wird `W1 ✓ erledigt`. Das Kürzel bleibt stehen, weil die Parallel-Übersicht und `/plan-lint` es referenzieren, und eine eigene Statusspalte legst du nicht an.
-2. **Detailschritt** — `### Schritt <X> — <Titel>` unter `## Schritte`: Als erster Punkt unter der Überschrift kommt `- **Status:** erledigt <Datum>`, vor `Ergebnis`. Die Überschrift selbst bleibt unverändert; `$schritt` wird über sie aufgelöst.
-3. **Kopfblock** — die Zeile `Status:`: Sie zählt mit — `In Umsetzung — <n> von <N> Schritten erledigt`, wobei N die Zahl der Zeilen in der Schrittübersicht ist. Ist damit der letzte Schritt erledigt, heißt sie `Umgesetzt — alle Schritte erledigt (<Datum>)`. Fehlt die Zeile, legst du sie an.
+1. **Step overview** — the table at the top of the plan, in the template `## Arbeitsschritte`: in the step's row, the `Welle` column gets the suffix `✓ erledigt`; `W1` becomes `W1 ✓ erledigt`. The code stays because the parallel overview and `/plan-lint` reference it, and you don't create a status column of your own.
+2. **Detailed step** — `### Schritt <X> — <Titel>` under `## Schritte`: as the first bullet under the heading comes `- **Status:** erledigt <Datum>`, before `Ergebnis`. The heading itself stays unchanged; `$schritt` is resolved via it.
+3. **Header block** — the `Status:` line: it keeps count — `In Umsetzung — <n> von <N> Schritten erledigt`, where N is the number of rows in the step overview. If this completes the last step, it reads `Umgesetzt — alle Schritte erledigt (<Datum>)`. If the line is missing, you create it.
 
-Das Datum schreibst du wie im Kopfblock, `YYYY-MM-DD`. Endet der Lauf ohne Abschluss — Schleife nach drei Runden abgebrochen oder Verifikation rot —, bekommt der Schritt an Stelle 1 den Zusatz `✗ abgebrochen` und an Stelle 2 `- **Status:** abgebrochen <Datum> — <Grund in einem Halbsatz>`; der Kopfblock wechselt auf `In Umsetzung`, zählt ihn aber nicht mit. Ein späterer Lauf, der den Schritt abschließt, ersetzt diese Markierung durch die Erledigt-Form. So ist eine Zeile ohne Zusatz immer eine, die noch niemand angefasst hat.
+You write the date as in the header block, `YYYY-MM-DD`. If the run ends without completion — loop aborted after three rounds or verification red — the step gets the suffix `✗ abgebrochen` in place 1 and `- **Status:** abgebrochen <Datum> — <Grund in einem Halbsatz>` in place 2; the header block switches to `In Umsetzung` but does not count it. A later run that completes the step replaces this marker with the done form. That way a row without a suffix is always one that nobody has touched yet.
 
-In einem fremdsprachigen Plan übersetzt du die Wörter, nicht die Form: `W1 ✓ done`, `- **Status:** done <Datum>`, `Implemented — all steps done (<Datum>)`. Haken, Kreuz, Position und Wellen-Kürzel bleiben.
+In a plan in another language you translate the words, not the form: `W1 ✓ done`, `- **Status:** done <Datum>`, `Implemented — all steps done (<Datum>)`. Check mark, cross, position and wave code stay.
 
-**Erkenntnisse.** Trage sie dort ein, wo sie hingehören — in die späteren Schritte, die sie betreffen, nicht nur in die Historie.
+**Insights.** Enter them where they belong — in the later steps they affect, not just in the history.
 
-**Danach prüfst du den Plan erneut**, und zwar nur die Schritte, die deine Umsetzung berührt hat: Stimmen ihre Annahmen noch? Sind Schritte überflüssig geworden oder ist ein neuer nötig? Dieselbe Terminierung wie oben — bringt ein Durchgang keine neuen Findings, ist der Plan aktuell und du hörst auf. Für ein vollständiges Review des überarbeiteten Plans verweise auf `/plan-review $plan`, statt es hier nachzubauen. Kommt dabei ein Schritt hinzu oder fällt einer weg, ändert sich N im Kopfblock — zieh die Zeile nach.
+**Afterwards you check the plan again**, and only the steps your implementation touched: do their assumptions still hold? Have steps become superfluous, or is a new one needed? The same termination as above — if a pass produces no new findings, the plan is current and you stop. For a full review of the revised plan, point to `/plan-review $plan` instead of rebuilding it here. If a step is added or removed in the process, N in the header block changes — update the line.
 
-**Kontrolle.** Bevor du den Bericht der Schlussrunde ausgibst, prüfst du die drei Stellen mit Grep in der Plandatei, nicht aus dem Gedächtnis: Die Tabellenzeile des Schritts endet auf `✓ erledigt |` oder `✗ abgebrochen |`; der erste Punkt unter seiner Überschrift beginnt mit `- **Status:**`; die `Status:`-Zeile des Kopfblocks zählt ihn mit. Fehlt eine Stelle, ist der Plan nicht fortgeschrieben — nachholen, dann berichten. Die Zeile `Plan:` im Bericht ist das Ergebnis dieser Prüfung, keine Formsache.
+**Check.** Before you output the final round's report, you check the three places with Grep in the plan file, not from memory: the step's table row ends in `✓ erledigt |` or `✗ abgebrochen |`; the first bullet under its heading begins with `- **Status:**`; the header block's `Status:` line counts it. If a place is missing, the plan is not updated — catch up, then report. The `Plan:` line in the report is the result of this check, not a formality.
 
-## 7. Haltung
+## 7. Stance
 
-Der gefährlichste Moment ist die zweite Runde, in der alles grün ist: dann ist die Versuchung groß, entweder Findings zu erfinden oder das Suchen einzustellen, bevor die Fehlerfälle geprüft sind. Beides ist ein schlechtes Ergebnis. Halte fest, was du ausgeführt hast und was dadurch belegt ist — daran misst sich die Runde, nicht an der Zahl der Findings.
+The most dangerous moment is the second round in which everything is green: then the temptation is great either to invent findings or to stop searching before the error cases are checked. Both are a bad result. Record what you ran and what that proves — the round is measured by that, not by the number of findings.
 
-Beim Commit sind es vier Versuchungen: alles zu stagen, weil `git add -A` schneller ist als eine Pfadliste; auf `main` zu committen, weil es ja nur lokal ist; einen roten Stand zu committen, „um nichts zu verlieren"; und den Hook mit `--no-verify` zu umgehen, weil er im Weg steht. Alle vier nehmen dem Menschen eine Entscheidung ab, die ihm gehört. Was du nicht committest, steht im Arbeitsverzeichnis und ist dort sicher; was du committest, hat den Rückweg im Bericht.
+At the commit there are four temptations: staging everything because `git add -A` is faster than a path list; committing on `main` because it's only local anyway; committing a red state "so as not to lose anything"; and bypassing the hook with `--no-verify` because it's in the way. All four take a decision away from the human that belongs to them. What you don't commit sits in the working directory and is safe there; what you do commit has its way back in the report.
 
-Beim Vereinfachen ist die Versuchung, dem Skill seine Zusammenfassung zu glauben und die Verifikation nicht noch einmal laufen zu lassen — oder von einem roten Durchgang die Hälfte zu behalten, weil sie hübsch aussieht. Der Index hält den geprüften Stand; was der Skill darüber legt, ist entweder wieder grün oder weg.
+When simplifying, the temptation is to believe the skill's summary and not run verification again — or to keep half of a red pass because it looks nice. The index holds the checked state; whatever the skill lays on top is either green again or gone.
 
-Beim Fortschreiben ist die Versuchung, die Historie anzuhängen und den Plan damit für fortgeschrieben zu halten. Der Mensch liest den Plan aber von oben, und eine Schrittübersicht ohne Haken sagt ihm: nichts passiert. Die drei Markierungen sind deshalb kein Schmuck, sondern das, woran er den Stand abliest — und die Grep-Kontrolle ist dafür da, dass du sie nicht aus der Erinnerung als gesetzt meldest.
+When updating, the temptation is to append the history and consider the plan updated. But the human reads the plan from the top, and a step overview without check marks tells them: nothing happened. The three markers are therefore not decoration but what they read the state from — and the Grep check exists so that you don't report them as set from memory.
 
-Und wenn der Plan an dieser Stelle falsch liegt, ist das ein Ergebnis, kein Hindernis. Sag es, statt darum herumzubauen.
+And if the plan is wrong at this point, that is a result, not an obstacle. Say so instead of building around it.
 
-Und bevor du absendest: Steht die Antwort in der Sprache des Plans? Die deutsche Anweisung zieht sonst ins Deutsche, auch wenn der Plan englisch ist.
+And before you send: is the answer in the language of the plan? The English instructions otherwise pull toward English, even when the plan is German.

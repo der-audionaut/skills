@@ -1,68 +1,68 @@
 ---
 name: plan-review
-description: Prüft einen Feature-Plan vor der Umsetzung gegen die reale Codebase, meldet Blocker, Lücken und ungeklärte Entscheidungen und begleitet die Überarbeitung in Runden bis zur Umsetzbarkeit. Nimmt die Bezeichnung des Plans (Dateiname) als Argument.
-argument-hint: "[plan-datei]"
+description: Reviews a feature plan before implementation against the real codebase, reports blockers, gaps and unresolved decisions, and accompanies the revision in rounds until it is implementable. Takes the plan's name (file name) as argument.
+argument-hint: "[plan-file]"
 arguments: plan
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Edit
 ---
 
-**Ausgabesprache: die Sprache des Plans.** Bericht, Rückfragen, Abbruchmeldungen und Historie schreibst du in der Sprache, in der der Plan verfasst ist — bis der Plan gelesen ist, auf Deutsch. Dass diese Anweisung deutsch ist, ändert daran nichts.
+**Output language: the language of the plan.** You write the report, follow-up questions, abort messages and history in the language the plan is written in — until the plan has been read, in German. That these instructions are in English changes nothing about this.
 
-Prüfe den Plan `$plan` auf Umsetzbarkeit. Das läuft in Runden: prüfen → klären → einarbeiten → erneut prüfen, bis kein Blocker mehr offen ist. Du bist Reviewer, nicht Autor: du änderst den Plan nur auf ausdrückliches Ja, und den Code nie.
+Review the plan `$plan` for implementability. This runs in rounds: review → clarify → incorporate → review again, until no blocker is left open. You are the reviewer, not the author: you change the plan only on an explicit yes, and the code never.
 
-## 1. Plan auflösen
+## 1. Resolve the plan
 
-**Plan.** `$plan` kann ein Pfad, ein Dateiname oder ein Namensfragment ohne Endung sein.
+**Plan.** `$plan` can be a path, a file name or a name fragment without extension.
 
-1. Existiert `$plan` als Pfad → nimm ihn.
-2. Sonst suche per Glob nach `**/*$plan*.md`, bevorzugt in `docs/plans/`, `.claude/plans/`, `plans/`, `docs/`, Projektwurzel.
-3. Mehrere Treffer → liste sie auf und brich ab, statt zu raten.
-4. Kein Treffer → sag das, nenne die durchsuchten Orte, brich ab.
+1. `$plan` exists as a path → take it.
+2. Otherwise glob for `**/*$plan*.md`, preferring `docs/plans/`, `.claude/plans/`, `plans/`, `docs/`, project root.
+3. Multiple hits → list them and abort instead of guessing.
+4. No hit → say so, name the places searched, abort.
 
-**Sprache.** Die Ausgabesprache ist die Sprache des Plans. Kopfblock und Überschriften entscheiden — nicht Zitate, Bezeichner oder Codeblöcke, die in einem deutschen Plan oft englisch sind. Die Sprache ändert den Text, nicht die Struktur: Das Berichtsformat bleibt, nur seine Beschriftungen werden übersetzt.
+**Language.** The output language is the language of the plan. The header block and headings decide — not quotes, identifiers or code blocks, which are often English in a German plan. The language changes the text, not the structure: the report format stays, only its labels are translated.
 
-**Historie.** Wo diese Anweisung `## Review-Historie` sagt, ist der Abschnitt dieser Bedeutung gemeint, gleich in welcher Sprache seine Überschrift steht — ein Plan kann aus `/plan-create` in einer anderen Sprache stammen. Einen vorhandenen erkennst du auch in Übersetzung und schreibst ihn fort, statt einen zweiten anzulegen; einen neuen legst du in der Plansprache an. Die Befund-Kennungen B, S und O bleiben unübersetzt, weil die Historie sie über Runden hinweg referenziert.
+**History.** Wherever these instructions say `## Review-Historie`, they mean the section with that meaning, whatever language its heading is in — a plan can come from `/plan-create` in another language. You recognize an existing one in translation too and continue it instead of creating a second one; a new one you create in the plan's language. The finding IDs B, S and O stay untranslated, because the history references them across rounds.
 
-Lies den Plan vollständig, bevor du irgendetwas bewertest.
+Read the plan completely before you assess anything.
 
-## 2. Runde bestimmen
+## 2. Determine the round
 
-Sieh im Plan nach einem Abschnitt `## Review-Historie`. Fehlt er, ist das Runde 1 und du prüfst alles. Existiert er, ist das die nächste Runde, und die Historie steuert, was du prüfst:
+Look in the plan for a `## Review-Historie` section. If it is missing, this is round 1 and you review everything. If it exists, this is the next round, and the history steers what you review:
 
-- **Offene Befunde** (Status `offen` oder `verschoben`): prüfe, ob die Überarbeitung sie tatsächlich löst, nicht ob der Plan sie erwähnt. Ein Satz wie "Migration wird rückwärtskompatibel gestaltet" löst nichts.
-- **Abgelehnte Befunde**: nicht erneut aufmachen. Die Entscheidung steht, mit Begründung in der Historie.
-- **Behobene Befunde**: nur noch daraufhin ansehen, ob die Änderung an anderer Stelle etwas gebrochen hat.
-- **Regressionen**: alle seit der letzten Runde geänderten Abschnitte prüfst du wie in Runde 1.
+- **Open findings** (status `offen` or `verschoben`): check whether the revision actually resolves them, not whether the plan mentions them. A sentence like "Migration wird rückwärtskompatibel gestaltet" (the migration will be made backward compatible) resolves nothing.
+- **Rejected findings**: do not reopen. The decision stands, with its rationale in the history.
+- **Fixed findings**: only look at whether the change broke something elsewhere.
+- **Regressions**: all sections changed since the last round you review as in round 1.
 
-Befund-IDs bleiben über Runden stabil. Neue Befunde bekommen die nächste freie Nummer.
+Finding IDs stay stable across rounds. New findings get the next free number.
 
-## 3. Gegen die Realität prüfen
+## 3. Check against reality
 
-Ein Review, das nur den Plan liest, ist wertlos. Sammle Belege:
+A review that only reads the plan is worthless. Collect evidence:
 
-- Öffne die Dateien, Module und Funktionen, die der Plan nennt. Existieren sie? Passen Signaturen, Typen, Verantwortlichkeiten?
-- Prüfe per Grep, ob es bereits eine Lösung, ein Muster oder einen Helper für das gibt, was der Plan neu bauen will.
-- Prüfe Aufrufer und Verbraucher der berührten Schnittstellen — der Plan übersieht typischerweise die, die er nicht erwähnt.
-- Lies `CONTEXT.md`, ADRs, `CLAUDE.md` oder vergleichbare Projektdokumente, falls vorhanden, und prüfe den Plan gegen Terminologie und getroffene Entscheidungen.
+- Open the files, modules and functions the plan names. Do they exist? Do signatures, types, responsibilities match?
+- Grep whether there is already a solution, a pattern or a helper for what the plan wants to build anew.
+- Check callers and consumers of the touched interfaces — the plan typically overlooks the ones it does not mention.
+- Read `CONTEXT.md`, ADRs, `CLAUDE.md` or comparable project documents, if present, and check the plan against terminology and decisions made.
 
-Jeder Befund braucht einen Beleg in Form von `Datei:Zeile`. Eine Vermutung ohne Beleg kennzeichnest du als Vermutung.
+Every finding needs evidence in the form `file:line`. A suspicion without evidence you mark as a suspicion.
 
-## 4. Prüfdimensionen
+## 4. Review dimensions
 
-Arbeite die Liste in `${CLAUDE_SKILL_DIR}/references/pruefkriterien.md` durch. Nicht jede Dimension trifft auf jeden Plan zu — überspringe, was nicht passt, aber überspringe nichts stillschweigend, das passt.
+Work through the list in `${CLAUDE_SKILL_DIR}/references/review-criteria.md`. Not every dimension applies to every plan — skip what does not fit, but never silently skip anything that does.
 
-## 5. Befunde einordnen
+## 5. Classify findings
 
-- **Blocker** — bei Umsetzung führt das zu falschem, kaputtem oder unsicherem Verhalten, oder der Schritt lässt sich so gar nicht ausführen.
-- **Sollte geklärt werden** — eine Entscheidung fehlt oder ist implizit; die Umsetzung würde raten.
-- **Optional** — Verbesserung, kein Risiko.
+- **Blocker** (`Blocker`) — implemented as is, this leads to wrong, broken or unsafe behavior, or the step cannot be carried out like this at all.
+- **Should be clarified** (`Sollte geklärt werden`) — a decision is missing or implicit; the implementation would guess.
+- **Optional** (`Optional`) — improvement, no risk.
 
-Sortiere innerhalb jeder Stufe nach Schwere. Fasse mehrere Ausprägungen desselben Problems zu einem Befund zusammen, statt sie zu strecken.
+Within each level, sort by severity. Merge several manifestations of the same problem into one finding instead of stretching them out.
 
-## 6. Bericht
+## 6. Report
 
-Nutze genau dieses Format:
+Use exactly this format:
 
 ```
 # Plan-Review: <Plan-Datei> — Runde <N>
@@ -96,11 +96,11 @@ Nutze genau dieses Format:
 
 ## 7. Iteration
 
-Nach dem Bericht führst du die Runde zu Ende:
+After the report you finish the round:
 
-1. **Fragen zuerst.** Stelle die offenen Fragen und warte auf Antwort. Arbeite nichts ein, solange eine Antwort eine Änderung noch umwerfen könnte.
-2. **Einarbeiten auf Ansage.** Frage, welche Befunde in den Plan sollen. Übernimm nur die genannten, und formuliere die Planänderung so konkret, dass sie ohne Rückfrage umsetzbar ist. Was der Mensch ablehnt, ist abgelehnt — hol es nicht durch die Hintertür zurück.
-3. **Historie fortschreiben.** Aktualisiere im Plan den Abschnitt `## Review-Historie`, lege ihn in Runde 1 am Ende der Datei an:
+1. **Questions first.** Ask the open questions and wait for the answer. Incorporate nothing as long as an answer could still overturn a change.
+2. **Incorporate on request.** Ask which findings should go into the plan. Adopt only the ones named, and word the plan change concretely enough that it can be implemented without a follow-up question. What the human rejects is rejected — do not bring it back through the back door.
+3. **Continue the history.** Update the `## Review-Historie` section in the plan; in round 1, create it at the end of the file:
 
    ```
    ## Review-Historie
@@ -110,23 +110,23 @@ Nach dem Bericht führst du die Runde zu Ende:
    - S3 Rollback-Weg fehlt — offen
    ```
 
-   In einem fremdsprachigen Plan trägt der neue Abschnitt die übersetzte Überschrift — `## Review History` — und seine Einträge folgen der Plansprache; die Vorlage hier ist deutsch, weil diese Anweisung es ist, nicht weil der Abschnitt es sein müsste.
+   In a plan in another language, the new section carries the translated heading — `## Review History` — and its entries follow the plan's language; the template here is German because German is the default output language, not because the section would have to be.
 
-   Die Historie ist der Übergabepunkt zwischen den Runden. Ohne sie prüft die nächste Runde blind von vorn.
-4. **Erneut prüfen.** Biete die nächste Runde an. Sie beginnt wieder bei Schritt 2 und beschränkt sich auf Geändertes, Offenes und Regressionen — nicht auf den ganzen Plan.
+   The history is the handoff point between rounds. Without it, the next round reviews blindly from scratch.
+4. **Review again.** Offer the next round. It starts again at step 2 and is limited to what changed, what is open and regressions — not the whole plan.
 
-Abbruch der Schleife:
+Ending the loop:
 
-- **Fertig**, wenn kein Blocker und kein offener Sollte-Punkt bleibt. Sag das klar, schreib die letzte Runde in die Historie und hör auf, weiter zu suchen.
-- **Ab Runde 2 keine neuen Optional-Befunde**, außer sie sind durch die Überarbeitung entstanden. Sonst konvergiert das Review nie.
-- **Nach drei Runden ohne Fortschritt** hörst du auf zu iterieren und benennst, woran es hängt: fehlende Information, offene Produktentscheidung oder ein Ansatz, der nicht trägt. Das entscheidet der Mensch, nicht die nächste Runde.
+- **Done** when no blocker and no open `Sollte geklärt werden` item remains. Say so clearly, write the last round into the history and stop searching further.
+- **From round 2 on, no new optional findings**, unless they arose from the revision. Otherwise the review never converges.
+- **After three rounds without progress** you stop iterating and name what it hinges on: missing information, an open product decision or an approach that does not hold. The human decides that, not the next round.
 
-## 8. Haltung
+## 8. Stance
 
-Der Plan stammt meist von einem Agenten wie dir. Behandle ihn entsprechend skeptisch: erfundene Dateipfade, Muster aus anderen Projekten, übersprungene Migrationsschritte und ein zu grober letzter Schritt sind die häufigsten Fehler.
+The plan usually comes from an agent like you. Treat it with corresponding skepticism: invented file paths, patterns from other projects, skipped migration steps and a final step that is too coarse are the most common errors.
 
-Wenn du nichts Wesentliches findest, sag das klar — aber dann muss der Abschnitt "Bestätigte Annahmen" zeigen, was du geprüft hast. Ein leerer Bericht ohne Belege ist kein bestandenes Review, sondern ein nicht durchgeführtes.
+If you find nothing substantial, say so clearly — but then the `Bestätigte Annahmen` section must show what you checked. An empty report without evidence is not a passed review but one that was never carried out.
 
-Erfinde umgekehrt keine Befunde, um beschäftigt zu wirken. In späteren Runden ist die Versuchung größer, weil das Offensichtliche schon gefunden ist — halte dann lieber fest, dass der Plan trägt.
+Conversely, do not invent findings to look busy. In later rounds the temptation is greater because the obvious has already been found — rather record that the plan holds.
 
-Und bevor du absendest: Steht die Antwort in der Sprache des Plans? Die deutsche Anweisung zieht sonst ins Deutsche, auch wenn der Plan englisch ist.
+And before you send: is the answer in the language of the plan? Otherwise the English instructions pull you into English, even when the plan is German.

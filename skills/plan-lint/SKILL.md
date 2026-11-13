@@ -1,76 +1,76 @@
 ---
 name: plan-lint
-description: Räumt einen Feature-Plan auf — entfernt totes Wissen, vereinheitlicht Inkonsistenzen und löst Widersprüche zwischen Architektur, Datenfluss, API, Schema und Caching auf, iterativ bis ein Durchgang keine neuen Findings mehr bringt. Nimmt die Bezeichnung des Plans als Argument.
-argument-hint: "[plan-datei]"
+description: Cleans up a feature plan — removes dead knowledge, unifies inconsistencies and resolves contradictions between architecture, data flow, API, schema and caching, iterating until a pass yields no new findings. Takes the plan's name as argument.
+argument-hint: "[plan-file]"
 arguments: plan
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Edit
 ---
 
-**Ausgabesprache: die Sprache des Plans.** Bericht, Rückfragen, Abbruchmeldungen und Lint-Historie schreibst du in der Sprache, in der der Plan verfasst ist — bis der Plan gelesen ist, auf Deutsch. Dass diese Anweisung deutsch ist, ändert daran nichts.
+**Output language: the language of the plan.** You write the report, follow-up questions, abort messages and lint history in the language the plan is written in — until the plan has been read, in German. That these instructions are in English changes nothing about this.
 
-Räume den Plan `$plan` auf. Lies ihn wie ein erfahrener Systemarchitekt, der ein fremdes Entwurfsdokument übernimmt: Trägt der Entwurf durchgängig dieselbe Vorstellung vom System, oder stehen in Kapitel 2 und Kapitel 6 zwei verschiedene Systeme?
+Clean up the plan `$plan`. Read it like an experienced system architect taking over someone else's design document: does the design carry the same picture of the system throughout, or do chapter 2 and chapter 6 describe two different systems?
 
-Du prüfst hier nicht, ob der Plan gut ist — das macht `/plan-review`. Du prüfst, ob er in sich stimmt, und stellst her, was du belegbar herstellen kannst.
+You are not checking here whether the plan is good — that is what `/plan-review` does. You check whether it is internally consistent, and you restore what you can restore with evidence.
 
-## 1. Plan auflösen
+## 1. Resolve the plan
 
-**Plan.** `$plan` kann ein Pfad, ein Dateiname oder ein Namensfragment ohne Endung sein.
+**Plan.** `$plan` can be a path, a file name or a name fragment without extension.
 
-1. Existiert `$plan` als Pfad → nimm ihn.
-2. Sonst per Glob `**/*$plan*.md`, bevorzugt in `docs/plans/`, `.claude/plans/`, `plans/`, `docs/`, Projektwurzel.
-3. Mehrere Treffer → auflisten und abbrechen, statt zu raten.
+1. `$plan` exists as a path → take it.
+2. Otherwise glob `**/*$plan*.md`, preferring `docs/plans/`, `.claude/plans/`, `plans/`, `docs/`, project root.
+3. Multiple hits → list them and abort instead of guessing.
 
-**Sprache.** Die Ausgabesprache ist die Sprache des Plans. Kopfblock und Überschriften entscheiden — nicht Zitate, Bezeichner oder Codeblöcke, die in einem deutschen Plan oft englisch sind. Die Sprache ändert den Text, nicht die Struktur: Das Berichtsformat bleibt, nur seine Beschriftungen werden übersetzt.
+**Language.** The output language is the language of the plan. The header block and headings decide — not quotes, identifiers or code blocks, which are often English in a German plan. The language changes the text, not the structure: the report format stays, only its labels are translated.
 
-**Historie.** Wo diese Anweisung `## Review-Historie`, `## Umsetzungs-Historie` oder `## Lint-Historie` sagt, ist jeweils der Abschnitt dieser Bedeutung gemeint, gleich in welcher Sprache seine Überschrift steht — ein Plan kann aus `/plan-create` in einer anderen Sprache stammen. Einen vorhandenen erkennst du auch in Übersetzung — und entfernst ihn ebenso wenig —, einen neuen legst du in der Plansprache an. Die Finding-Kennungen T, I und W bleiben unübersetzt, damit Historie und Mensch sie eindeutig referenzieren können.
+**History.** Wherever these instructions say `## Review-Historie`, `## Umsetzungs-Historie` or `## Lint-Historie`, they mean the section with that meaning, whatever language its heading is in — a plan can come from `/plan-create` in another language. You recognize an existing one in translation too — and remove it just as little —, a new one you create in the plan's language. The finding IDs T, I and W stay untranslated so that the history and the human can reference them unambiguously.
 
-Den Plan selbst lintest du auf Inhalt, nicht auf Sprache. Ein Plan, der Deutsch und Englisch mischt, ist erst dann ein I-Finding, wenn dasselbe Ding dadurch zwei Namen trägt.
+You lint the plan itself for content, not for language. A plan that mixes German and English is only an I finding when the same thing ends up with two names because of it.
 
-Lies den Plan vollständig, bevor du irgendetwas änderst. Inkonsistenzen erkennt man nur im Ganzen — der Abschnitt, der falsch aussieht, ist oft der richtige.
+Read the plan completely before you change anything. Inconsistencies only show in the whole — the section that looks wrong is often the right one.
 
-## 2. Findings sammeln
+## 2. Collect findings
 
-Drei Kategorien, die Erkennungsmerkmale stehen in `${CLAUDE_SKILL_DIR}/references/lint-kategorien.md`:
+Three categories; the recognition criteria are in `${CLAUDE_SKILL_DIR}/references/lint-categories.md`:
 
-- **T — Totes Wissen.** Aussagen über einen Zustand, den es nicht mehr gibt: erledigte TODOs, Platzhalter, Dubletten, Beschreibungen bereits umgesetzter Schritte im Futur, Verweise auf Dateien oder Felder, die nicht existieren, Abschnitte, auf die kein Schritt zugreift.
-- **I — Inkonsistenzen.** Dasselbe Ding, verschieden benannt oder verschieden typisiert. Feld heißt im Schema-Abschnitt anders als in der API. Schrittnummern, die nach einer Einfügung nicht mehr aufgehen.
-- **W — Widersprüche.** Zwei Aussagen, die nicht gleichzeitig gelten können. Synchron im Request und gleichzeitig im Job. Feld nullable und Pflichtfeld. Cache-Gültigkeit an zwei Stellen mit zwei Werten.
+- **T — Dead knowledge.** Statements about a state that no longer exists: done TODOs, placeholders, duplicates, descriptions of already implemented steps in the future tense, references to files or fields that do not exist, sections no step uses.
+- **I — Inconsistencies.** The same thing, named differently or typed differently. A field is called something else in the schema section than in the API. Step numbers that no longer add up after an insertion.
+- **W — Contradictions.** Two statements that cannot both hold. Synchronous in the request and at the same time in the job. Field nullable and required. Cache validity in two places with two values.
 
-Jedes Finding bekommt eine stabile ID (T1, I1, W1, …), die Fundstelle als Abschnitt oder Zeile und ein Zitat des betroffenen Satzes. Ein Widerspruch braucht **beide** Fundstellen.
+Every finding gets a stable ID (T1, I1, W1, …), the location as section or line, and a quote of the affected sentence. A contradiction needs **both** locations.
 
-Belege deine Einstufung. Ob eine Aussage tot ist, entscheidet nicht ihr Alter, sondern die Codebase: Existiert die Datei, das Feld, die Funktion? Nutze Grep und Read, statt zu vermuten. Was du nicht belegen kannst, ist kein Finding, sondern eine Frage.
+Back up your classification with evidence. Whether a statement is dead is decided not by its age but by the codebase: does the file, the field, the function exist? Use Grep and Read instead of guessing. What you cannot back up with evidence is not a finding but a question.
 
-## 3. Findings behandeln
+## 3. Handle findings
 
-- **T → entfernen.** Ersatzlos. Wenn beim Entfernen ein Verweis irgendwo anders ins Leere zeigt, gehört das Nachziehen zur selben Änderung.
-- **I → vereinheitlichen.** Auf die Variante, die im Code, in `CONTEXT.md` oder in einem ADR belegt ist. Gibt es keinen Beleg, nimm die Variante, die im Plan überwiegt, und sag im Bericht, dass es eine Konvention und kein Beleg ist.
-- **W → nur auflösen, wenn eine Seite belegbar falsch ist.** Der Beleg kann im Code liegen, in einer späteren Entscheidung der `## Review-Historie` oder in einer bereits erfolgten Umsetzung. Steht Aussage gegen Aussage ohne Beleg, ist das eine Entscheidung und keine Aufräumarbeit: leg beide Seiten vor, frag nach, ändere nichts.
+- **T → remove.** Without replacement. If removing it leaves a reference elsewhere pointing into nothing, fixing that up belongs to the same change.
+- **I → unify.** On the variant backed by the code, by `CONTEXT.md` or by an ADR. If there is no evidence, take the variant that predominates in the plan, and say in the report that this is a convention, not evidence.
+- **W → resolve only if one side is demonstrably wrong.** The evidence can lie in the code, in a later decision in the `## Review-Historie` or in an implementation that has already happened. If it is statement against statement without evidence, that is a decision, not cleanup: present both sides, ask, change nothing.
 
-**Was du niemals entfernst:**
+**What you never remove:**
 
-- Begründungen und verworfene Alternativen. Sie sehen überflüssig aus und sind der Grund, warum der Plan aussieht, wie er aussieht.
+- Rationales and rejected alternatives. They look superfluous and are the reason the plan looks the way it does.
 - `## Review-Historie`, `## Umsetzungs-Historie`, `## Lint-Historie`.
-- Offene Fragen an den Menschen, auch unbeantwortete. Besonders die.
-- Anforderungen, nur weil kein Schritt sie abdeckt. Das ist eine Lücke, kein totes Wissen — melde sie, lösche sie nicht.
+- Open questions to the human, including unanswered ones. Especially those.
+- Requirements, just because no step covers them. That is a gap, not dead knowledge — report it, do not delete it.
 
-Im Zweifel gilt: nicht entfernen, sondern als Finding vorlegen. Ein zu voller Plan ist ein kleineres Problem als ein Plan, dem die entscheidende Zeile fehlt.
+When in doubt: do not remove, present it as a finding. A plan that is too full is a smaller problem than a plan missing the decisive line.
 
 ## 4. Iteration
 
-Eine Runde ist: sammeln → behandeln → den geänderten Plan erneut vollständig lesen.
+One round is: collect → handle → read the changed plan completely again.
 
-Das erneute Lesen ist der Kern, denn Aufräumen erzeugt neue Findings. Entfernte Passagen hinterlassen Verweise ins Leere. Vereinheitlichte Begriffe machen zwei Absätze plötzlich zu Dubletten. Ein aufgelöster Widerspruch macht sichtbar, dass ein dritter Abschnitt derselben falschen Seite folgte.
+The re-reading is the core, because cleanup produces new findings. Removed passages leave references pointing into nothing. Unified terms suddenly turn two paragraphs into duplicates. A resolved contradiction reveals that a third section followed the same wrong side.
 
-**Terminierung:** Die Schleife endet, wenn ein vollständiger Durchgang kein neues T-, I- oder W-Finding mehr ergibt. Sag das dann klar und hör auf zu suchen.
+**Termination:** The loop ends when a complete pass yields no new T, I or W finding. Then say so clearly and stop searching.
 
-Damit sie auch terminiert:
+So that it actually terminates:
 
-- Ab Runde 2 keine reinen Stilbefunde mehr — Formulierung, Reihenfolge, Überschriftenebenen sind kein Lint, solange sie nicht mehrdeutig sind.
-- Ein Finding, das der Mensch abgelehnt hat, wird nicht neu aufgemacht.
-- Nach drei Runden ohne Fortschritt hörst du auf. Was dann noch offen ist, ist in aller Regel ein ungeklärter Widerspruch, und der gehört dem Menschen.
+- From round 2 on, no pure style findings — wording, ordering, heading levels are not lint as long as they are not ambiguous.
+- A finding the human rejected is not reopened.
+- After three rounds without progress you stop. Whatever is still open then is as a rule an unresolved contradiction, and that belongs to the human.
 
-## 5. Bericht
+## 5. Report
 
 ```
 # Plan-Lint: <Plan-Datei> — Runde <N>
@@ -100,25 +100,25 @@ Damit sie auch terminiert:
 - <was nach Finding aussah, aber keins ist, mit einem Satz warum>
 ```
 
-Zitiere jede Entfernung. Der Bericht ist die einzige Stelle, an der rekonstruierbar bleibt, was verschwunden ist — und die Grundlage dafür, dass du eine Löschung zurückholen kannst, ohne den Diff zu lesen.
+Quote every removal. The report is the only place where what disappeared remains reconstructible — and the basis for being able to bring back a deletion without reading the diff.
 
-## 6. Historie
+## 6. History
 
-Nach der letzten Runde eine kompakte Zeile in `## Lint-Historie` am Ende des Plans, angelegt falls nicht vorhanden:
+After the last round, one compact line in `## Lint-Historie` at the end of the plan, created if it does not exist:
 
 ```
 ## Lint-Historie
 ### <Datum> — 2 Runden — 4 entfernt, 3 vereinheitlicht, 1 Widerspruch offen (W1: Cache-Gültigkeit)
 ```
 
-In einem fremdsprachigen Plan trägt der neue Abschnitt die übersetzte Überschrift — `## Lint History` — und seine Zeilen folgen der Plansprache; die Vorlage hier ist deutsch, weil diese Anweisung es ist, nicht weil der Abschnitt es sein müsste.
+In a plan in another language, the new section carries the translated heading — `## Lint History` — and its lines follow the plan's language; the template here is German because German is the default output language, not because the section would have to be.
 
-Kein Protokoll der einzelnen Zeilen — dafür gibt es die Versionsverwaltung. In der Historie steht nur, was offen blieb, damit der nächste Durchgang dort ansetzt.
+No log of the individual lines — that is what version control is for. The history only records what remained open, so the next pass picks up there.
 
-## 7. Haltung
+## 7. Stance
 
-Die Versuchung eines Aufräum-Durchgangs ist, Kürze mit Qualität zu verwechseln. Ein Plan ist nicht besser, weil er kürzer ist — er ist besser, wenn nichts mehr drinsteht, das in die Irre führt. Kontext, Begründung und Randbedingung sind kein Ballast.
+The temptation of a cleanup pass is to confuse brevity with quality. A plan is not better because it is shorter — it is better when nothing in it misleads anymore. Context, rationale and constraints are not ballast.
 
-Die zweite Versuchung ist, einen Widerspruch aufzulösen, indem man sich für eine Seite entscheidet. Das ist keine Aufräumarbeit, sondern eine Architekturentscheidung, die dir nicht zusteht, solange kein Beleg sie trägt.
+The second temptation is to resolve a contradiction by picking a side. That is not cleanup but an architecture decision that is not yours to make as long as no evidence supports it.
 
-Und bevor du absendest: Steht die Antwort in der Sprache des Plans? Die deutsche Anweisung zieht sonst ins Deutsche, auch wenn der Plan englisch ist.
+And before you send: is the answer in the language of the plan? Otherwise the English instructions pull you into English, even when the plan is German.
