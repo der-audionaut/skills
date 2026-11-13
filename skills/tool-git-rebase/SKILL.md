@@ -1,97 +1,99 @@
 ---
 name: tool-git-rebase
-description: Setzt den ausgecheckten oder einen benannten Branch per Rebase auf einen Basis-Branch neu auf — holt dessen aktuellen Stand, prüft die Ausgangslage, löst Konflikte Commit für Commit so auf, dass die Absicht beider Seiten erhalten bleibt, verifiziert das Ergebnis mit den Befehlen des Projekts und übergibt mit einem Bericht, ohne zu pushen. Nimmt den Basis-Branch als Argument, optional gefolgt vom Branch, der neu aufgesetzt wird — ohne Angabe der ausgecheckte Branch.
+description: Rebases the checked-out branch or a named branch onto a base branch — fetches the base's current state, checks the starting situation, resolves conflicts commit by commit so that the intent of both sides survives, verifies the result with the project's own commands and hands off with a report, without pushing. Takes the base branch as an argument, optionally followed by the branch to rebase — without it, the checked-out branch.
 argument-hint: "[basebranch] [branch]"
 arguments: basebranch branch
 disable-model-invocation: true
 allowed-tools: Bash Read Grep Glob Edit
 ---
 
-**Ausgabesprache: Deutsch.** Bericht, Rückfragen und Abbruchmeldungen schreibst du auf Deutsch, auch wenn Repository und Commit-Botschaften englisch sind. Commit-Botschaften und Code folgen dem Bestand, nicht dieser Vorgabe.
+**Output language: German.** You write the report, follow-up questions and abort messages in German, even if the repository and commit messages are in English. Commit messages and code follow the existing codebase, not this rule.
 
-Setze den Zielbranch — `$branch`, oder ohne Angabe den ausgecheckten Branch — per Rebase auf `$basebranch` neu auf. Arbeite wie jemand, der fremde Commits durch fremde Änderungen trägt: Jeder Commit soll hinterher genau das tun, was sein Autor wollte — nur eben auf dem neuen Stand der Basis. Du baust hier nichts Neues und räumst nichts nebenbei auf.
+Rebase the target branch — `$branch`, or without it the checked-out branch — onto `$basebranch`. Work like someone carrying other people's commits through other people's changes: afterwards, every commit should do exactly what its author wanted — just on the new state of the base. You build nothing new here and tidy up nothing on the side.
 
-Drei Regeln tragen den ganzen Ablauf: Du pushst nicht. Du änderst weder Reihenfolge noch Botschaft noch Zuschnitt der Commits. Und jeder Konflikt wird gelesen, bevor er aufgelöst wird — eine Seite pauschal zu übernehmen ist keine Auflösung, sondern ein verstecktes Zurücksetzen.
+Three rules carry the whole procedure: You do not push. You change neither the order nor the message nor the cut of the commits. And every conflict is read before it is resolved — taking one side wholesale is not a resolution but a hidden revert.
 
-## 1. Basis-Branch und Zielbranch auflösen
+In the commands below, `<basis>` is the base branch, `<ziel>` the target branch, `<datei>`/`<dateien>` the conflicted file(s) and `<vorheriger Branch>` the branch that was checked out before; the report template uses the same placeholders.
 
-**Basis-Branch.** `$basebranch` ist der Branch, auf den der Zielbranch aufgesetzt wird — als lokaler Name (`main`) oder mit Remote (`origin/main`). Prüfe mit `git rev-parse --verify`, was es davon gibt, und dann:
+## 1. Resolve base branch and target branch
 
-1. Ist `$basebranch` leer → nenne die Kandidaten, die es gibt (der Upstream des Zielbranchs, `main`, `master`, `develop`), und frag, welcher gemeint ist. Rate nicht: Ein Rebase auf den falschen Branch ist rückholbar, aber der Weg zurück kostet Vertrauen.
-2. Existiert der Name nur auf einem Remote (`origin/<name>`) → nimm den Remote-Zweig.
-3. Existiert er gar nicht → nenne die vorhandenen Branches und brich ab.
+**Base branch.** `$basebranch` is the branch the target branch is rebased onto — as a local name (`main`) or with remote (`origin/main`). Check with `git rev-parse --verify` which of these exist, and then:
 
-**Zielbranch.** Der Zielbranch ist der Branch, der neu aufgesetzt wird. Er muss lokal existieren, weil der Rebase ihn auscheckt — ein Remote-Zweig kann nur Basis sein. Prüfe mit `git rev-parse --verify refs/heads/<name>`, und dann:
+1. `$basebranch` is empty → name the candidates that exist (the target branch's upstream, `main`, `master`, `develop`) and ask which one is meant. Do not guess: a rebase onto the wrong branch can be undone, but the way back costs trust.
+2. The name exists only on a remote (`origin/<name>`) → take the remote branch.
+3. It does not exist at all → name the existing branches and abort.
 
-1. Ist `$branch` leer → der ausgecheckte Branch ist der Zielbranch (`git symbolic-ref --quiet --short HEAD`; liefert das nichts, ist kein Branch ausgecheckt, und Abschnitt 2 bricht ab).
-2. Existiert `$branch` als lokaler Branch → das ist der Zielbranch.
-3. Existiert der Name nur auf einem Remote (`origin/<name>`) → brich ab und nenne den Einzeiler, der ihn lokal anlegt: `git switch <name>`. Branches anzulegen ist nicht deine Aufgabe, der Rebase ist es.
-4. Existiert er gar nicht → nenne die vorhandenen Branches und brich ab.
-5. Zeigen Zielbranch und Basis-Branch auf denselben Ref → brich ab: Ein Branch lässt sich nicht auf sich selbst aufsetzen.
+**Target branch.** The target branch is the branch being rebased. It must exist locally, because the rebase checks it out — a remote branch can only be a base. Check with `git rev-parse --verify refs/heads/<name>`, and then:
 
-## 2. Ausgangslage prüfen
+1. `$branch` is empty → the checked-out branch is the target branch (`git symbolic-ref --quiet --short HEAD`; if that returns nothing, no branch is checked out, and section 2 aborts).
+2. `$branch` exists as a local branch → that is the target branch.
+3. The name exists only on a remote (`origin/<name>`) → abort and name the one-liner that creates it locally: `git switch <name>`. Creating branches is not your job; the rebase is.
+4. It does not exist at all → name the existing branches and abort.
+5. Target branch and base branch point to the same ref → abort: a branch cannot be rebased onto itself.
 
-Bevor `git rebase` läuft, muss die Lage eindeutig sein. Jeder der folgenden Punkte ist ein Abbruchgrund — melde ihn und hör auf, statt zu reparieren:
+## 2. Check the starting situation
 
-- **Arbeitsverzeichnis nicht sauber.** `git status --porcelain` zeigt geänderte oder gestagte Dateien. Nenne sie und schlag Commit oder Stash vor; du stashst nicht selbst, weil ein vergessener Stash schlimmer ist als ein abgebrochener Rebase. Unversionierte Dateien stören nur, wenn die Basis eine Datei desselben Pfads mitbringt — dann ebenso.
-- **Ein Rebase, Merge oder Cherry-Pick läuft bereits.** `git status` sagt es, `.git/rebase-merge`, `.git/rebase-apply` oder `.git/MERGE_HEAD` bestätigen es. Fremde Zwischenstände aufzuräumen steht dir nicht zu.
-- **Kein Branch ausgecheckt** (detached HEAD). Das gilt auch mit `$branch`: Von einem losgelösten Commit wegzuwechseln kann Commits unerreichbar machen, und ob die jemand braucht, weißt du nicht — die eine Zeile `git switch` vorher macht der Mensch.
+Before `git rebase` runs, the situation must be unambiguous. Each of the following points is a reason to abort — report it and stop instead of repairing:
 
-Dann hol den Stand — immer, nicht nur wenn `main` alt aussieht, denn ob er alt ist, weiß man erst danach: `git fetch <remote>` für das Remote, auf dem der Basis-Branch liegt, und notiere, ob sich `<remote>/<basis>` dabei bewegt hat; das kommt als Zeile in den Bericht. Ein Rebase auf einen veralteten lokalen `main` löst die Konflikte von gestern und bringt morgen dieselben noch einmal. Hat der lokale Basis-Branch einen Upstream, vergleiche beide Stände: gleich → nimm den lokalen Namen; lokal hinterher → nimm den Upstream (`origin/main`) und sag das im Bericht; lokal voraus, also unveröffentlichte Commits auf der Basis → frag, welcher Stand gemeint ist. Den lokalen Basis-Branch bewegst du dabei nicht: Du setzt auf `origin/main` auf, statt erst `main` nachzuziehen — der Rebase ist deine Aufgabe, die Pflege fremder Branches nicht.
+- **Working tree not clean.** `git status --porcelain` shows modified or staged files. Name them and suggest commit or stash; you do not stash yourself, because a forgotten stash is worse than an aborted rebase. Untracked files only get in the way if the base brings a file at the same path — then the same applies.
+- **A rebase, merge or cherry-pick is already in progress.** `git status` says so, `.git/rebase-merge`, `.git/rebase-apply` or `.git/MERGE_HEAD` confirm it. Cleaning up someone else's intermediate state is not your place.
+- **No branch checked out** (detached HEAD). This also applies with `$branch`: switching away from a detached commit can make commits unreachable, and whether anyone needs them, you do not know — the human does the one `git switch` line beforehand.
 
-Nun der Blick auf die Arbeit, die neu aufgesetzt wird — alles auf `<ziel>` und ohne Branchwechsel; ohne `$branch` ist `<ziel>` der ausgecheckte Branch, und gegenüber dem gewohnten Ablauf ändert sich nichts:
+Then fetch the current state — always, not only when `main` looks old, because whether it is old you only know afterwards: `git fetch <remote>` for the remote the base branch lives on, and note whether `<remote>/<basis>` moved; that goes into the report as a line. A rebase onto a stale local `main` resolves yesterday's conflicts and brings the same ones again tomorrow. If the local base branch has an upstream, compare both states: equal → take the local name; local behind → take the upstream (`origin/main`) and say so in the report; local ahead, i.e. unpublished commits on the base → ask which state is meant. You do not move the local base branch in the process: you rebase onto `origin/main` instead of first fast-forwarding `main` — the rebase is your job, maintaining other branches is not.
 
-- `git merge-base <basis> <ziel>` und `git log --oneline <basis>..<ziel>` — das sind die Commits, die gleich neu geschrieben werden. Ist die Basis bereits Vorfahr von `<ziel>` (`git merge-base --is-ancestor <basis> <ziel>`), gibt es nichts zu tun: sag das und hör auf.
-- Hat der Zielbranch einen Upstream, wird der Rebase veröffentlichte Historie umschreiben; der Push braucht danach `--force-with-lease`. Das ist kein Abbruchgrund, gehört aber in den Bericht. Ein Abbruchgrund ist es, wenn der Upstream Commits hat, die lokal fehlen (`git log --oneline <ziel>..<ziel>@{u}` ist nicht leer): Erst die holen, sonst überschreibt der spätere Push fremde Arbeit.
+Now look at the work being rebased — everything on `<ziel>` and without switching branches; without `$branch`, `<ziel>` is the checked-out branch, and nothing changes compared to the usual procedure:
 
-Sichere den Ausgangspunkt, bevor du etwas veränderst: `git rev-parse <ziel>` für den Bericht, und den Diff des Branchs gegen die alte Merge-Base in eine Datei außerhalb des Repos, etwa `git diff $(git merge-base <basis> <ziel>) <ziel> > /tmp/rebase-<ziel>-vorher.diff`. Git setzt beim Rebase außerdem `ORIG_HEAD`; das ist der Weg zurück, solange der Zielbranch ausgecheckt ist — nach einem Rückwechsel nicht mehr, siehe Abschnitt 5.
+- `git merge-base <basis> <ziel>` and `git log --oneline <basis>..<ziel>` — these are the commits about to be rewritten. If the base is already an ancestor of `<ziel>` (`git merge-base --is-ancestor <basis> <ziel>`), there is nothing to do: say so and stop.
+- If the target branch has an upstream, the rebase will rewrite published history; the push afterwards needs `--force-with-lease`. That is not a reason to abort, but it belongs in the report. It is a reason to abort if the upstream has commits that are missing locally (`git log --oneline <ziel>..<ziel>@{u}` is not empty): fetch those first, otherwise the later push overwrites someone else's work.
 
-## 3. Rebase ausführen
+Secure the starting point before you change anything: `git rev-parse <ziel>` for the report, and the branch's diff against the old merge base into a file outside the repo, e.g. `git diff $(git merge-base <basis> <ziel>) <ziel> > /tmp/rebase-<ziel>-vorher.diff`. Git also sets `ORIG_HEAD` during the rebase; that is the way back as long as the target branch is checked out — after switching back, no longer, see section 5.
 
-Ist der Zielbranch nicht ausgecheckt, wechsle jetzt — und erst jetzt: Notiere den ausgecheckten Branch für den Rückweg, dann `git switch <ziel>`. Schlägt der Wechsel fehl, brich ab und melde es; bis hierhin hast du nichts verändert. Der Wechsel steht so spät, damit alle Prüfungen und Rückfragen davor auf dem Branch des Menschen enden, ohne dass etwas zurückgewechselt werden müsste.
+## 3. Run the rebase
 
-`GIT_EDITOR=true git rebase <basis>` — schlicht, ohne `-i`, ohne Autosquash, ohne Umsortieren. Das vorangestellte `GIT_EDITOR=true` verhindert, dass ein Editor aufgeht und der Lauf hängt. Läuft der Rebase ohne Halt durch, weiter mit Abschnitt 5.
+If the target branch is not checked out, switch now — and only now: note the checked-out branch for the way back, then `git switch <ziel>`. If the switch fails, abort and report it; up to this point you have changed nothing. The switch comes this late so that all checks and follow-up questions before it end on the human's branch, with nothing to switch back.
 
-Hält er an, ist ein Konflikt da. `git status` zeigt die betroffenen Dateien, `git show --stat REBASE_HEAD` den Commit, der gerade angewendet wird.
+`GIT_EDITOR=true git rebase <basis>` — plain, without `-i`, without autosquash, without reordering. The prefixed `GIT_EDITOR=true` prevents an editor from opening and the run from hanging. If the rebase runs through without stopping, continue with section 5.
 
-## 4. Konflikte auflösen
+If it stops, there is a conflict. `git status` shows the affected files, `git show --stat REBASE_HEAD` the commit currently being applied.
 
-Erst verstehen, dann ändern. Für jeden Halt:
+## 4. Resolve conflicts
 
-**Die Seiten richtig zuordnen.** Beim Rebase ist es umgekehrt zu dem, was man vom Merge kennt: `ours` — `HEAD`, der obere Block ab `<<<<<<<` — ist die **Basis** samt allem, was bereits neu aufgesetzt wurde; `theirs` — `REBASE_HEAD`, der untere Block bis `>>>>>>>` — ist der **Commit des Branchs**, der gerade angewendet wird. Wer das verwechselt, wirft mit `--ours` die eigene Arbeit weg und glaubt, sie behalten zu haben.
+Understand first, then change. For each stop:
 
-**Beide Absichten ermitteln.** `git show REBASE_HEAD` zeigt, was der Commit wollte; `git log -p <merge-base>..<basis> -- <datei>` zeigt, was die Basis an derselben Stelle wollte und warum. Lies die Commit-Botschaften — sie sind die einzige Begründung, die du bekommst.
+**Assign the sides correctly.** In a rebase it is the reverse of what you know from a merge: `ours` — `HEAD`, the upper block from `<<<<<<<` — is the **base** plus everything already rebased; `theirs` — `REBASE_HEAD`, the lower block down to `>>>>>>>` — is the **branch's commit** currently being applied. Whoever mixes this up throws away their own work with `--ours` and believes they kept it.
 
-**Auflösen heißt: beide Absichten überleben.** Die Änderung der Basis bleibt, und der Commit tut auf dem neuen Stand dasselbe wie vorher — angepasst an neue Namen, neue Signaturen, verschobenen Code. Hat die Basis das Anliegen des Commits inzwischen selbst erledigt, darf seine Seite entfallen; das belegst du mit der Stelle in der Basis, statt es zu vermuten. Wollen beide Seiten an derselben Stelle etwas anderes, und beides ist für sich gültig, dann ist das keine Konfliktauflösung, sondern eine Entscheidung: Leg beide Seiten mit Zitat vor, sag, was du vorschlagen würdest und warum, frag, und lass den Rebase bis zur Antwort stehen. Nenne dabei den Ausweg `git rebase --abort` — und, wenn du für den Rebase gewechselt hast, den Rückwechsel `git switch <vorheriger Branch>`, der nach `--continue` wie nach `--abort` folgt.
+**Determine both intents.** `git show REBASE_HEAD` shows what the commit wanted; `git log -p <merge-base>..<basis> -- <datei>` shows what the base wanted at the same spot and why. Read the commit messages — they are the only justification you get.
 
-Wiederkehrende Muster — Lock-Dateien, generierter Code, Importblöcke, gelöscht gegen geändert, Umbenennungen, Formatierungsläufe, kollidierende Migrationen — stehen mit ihrer Behandlung in `${CLAUDE_SKILL_DIR}/references/konfliktmuster.md`. Lies die Datei beim ersten Konflikt, nicht erst beim dritten.
+**Resolving means: both intents survive.** The base's change stays, and the commit does the same thing on the new state as before — adapted to new names, new signatures, moved code. If the base has meanwhile taken care of the commit's concern itself, the commit's side may be dropped; you prove that with the location in the base instead of assuming it. If both sides want something different at the same spot, and both are valid on their own, that is not conflict resolution but a decision: present both sides with quotes, say what you would propose and why, ask, and leave the rebase stopped until the answer. Name the way out `git rebase --abort` — and, if you switched for the rebase, the switch back `git switch <vorheriger Branch>`, which follows after `--continue` as well as after `--abort`.
 
-**Bevor du weitergehst:**
+Recurring patterns — lock files, generated code, import blocks, deleted versus modified, renames, formatting runs, colliding migrations — are listed with their handling in `${CLAUDE_SKILL_DIR}/references/conflict-patterns.md`. Read the file at the first conflict, not at the third.
 
-- Die Änderung der Basis ist noch da: `git diff <merge-base> <basis> -- <datei>` zeigt, was die Basis an dieser Datei geändert hat, und jede dieser Zeilen muss in deiner Auflösung stehen — neue Namen, neue Signaturen, neue Aufrufe. Fehlt eine, hast du die Basis zurückgesetzt; genau das passiert, wenn man den unteren Block einfach übernimmt, weil er „die eigene Arbeit" ist.
-- Die Änderung des Commits ist noch da: `git show REBASE_HEAD -- <datei>` gegen deine Fassung halten. Seine Absicht muss erkennbar bleiben, auch wenn sie jetzt andere Namen trägt.
-- Kein Marker mehr in den betroffenen Dateien: `grep -n '^<<<<<<<\|^=======\|^>>>>>>>' <dateien>`. Ein vergessener Marker ist der peinlichste Commit, den ein Rebase erzeugen kann.
-- `git diff` gegen den Index anschauen: Ist wirklich nur das geändert, was der Konflikt verlangte?
-- `git add <dateien>`, dann `GIT_EDITOR=true git rebase --continue`.
-- Meldet Git, der Commit sei leer geworden, prüfe mit `git diff --cached`: Ist der Index leer, steckt die Änderung schon in der Basis, und `git rebase --skip` ist richtig — notiere den übersprungenen Commit für den Bericht. Ist der Index nicht leer, ist etwas anderes los, und du liest erneut.
+**Before you move on:**
 
-Dann der nächste Halt, bis der Rebase durch ist. Derselbe Konflikt kommt in mehreren Commits wieder, wenn der Branch dieselbe Stelle mehrfach angefasst hat; löse ihn jedes Mal konsistent zur ersten Auflösung, denn Git merkt sich das nicht für dich.
+- The base's change is still there: `git diff <merge-base> <basis> -- <datei>` shows what the base changed in this file, and every one of those lines must be in your resolution — new names, new signatures, new calls. If one is missing, you have reverted the base; that is exactly what happens when you simply take the lower block because it is "your own work".
+- The commit's change is still there: hold `git show REBASE_HEAD -- <datei>` against your version. Its intent must remain recognizable, even if it now carries different names.
+- No marker left in the affected files: `grep -n '^<<<<<<<\|^=======\|^>>>>>>>' <dateien>`. A forgotten marker is the most embarrassing commit a rebase can produce.
+- Look at `git diff` against the index: is really only what the conflict required changed?
+- `git add <dateien>`, then `GIT_EDITOR=true git rebase --continue`.
+- If Git reports that the commit has become empty, check with `git diff --cached`: if the index is empty, the change is already in the base, and `git rebase --skip` is right — note the skipped commit for the report. If the index is not empty, something else is going on, and you read again.
 
-**Terminierung:** Bleibt derselbe Commit nach drei Anläufen ungelöst — weil jede Auflösung neue Konflikte oder Fehler nach sich zieht — hörst du auf, lässt den Rebase stehen und legst den Stand vor: welcher Commit, welche Dateien, was du versucht hast, wie es weitergeht (`git rebase --continue` nach eigener Auflösung oder `git rebase --abort`, danach gegebenenfalls `git switch <vorheriger Branch>`). Ein halb fertiger Rebase mit ehrlicher Meldung ist besser als einer, der mit erfundenen Auflösungen durchläuft.
+Then the next stop, until the rebase is through. The same conflict comes back in several commits if the branch touched the same spot multiple times; resolve it each time consistently with the first resolution, because Git does not remember it for you.
 
-## 5. Verifizieren
+**Termination:** If the same commit remains unresolved after three attempts — because every resolution brings new conflicts or errors — you stop, leave the rebase standing and present the state: which commit, which files, what you tried, how to proceed (`git rebase --continue` after their own resolution or `git rebase --abort`, then `git switch <vorheriger Branch>` if applicable). A half-finished rebase with an honest report is better than one that runs through on invented resolutions.
 
-Ein Rebase ohne Konfliktmarker ist noch nicht richtig. Compiler und Tests sehen Konflikte, die Git nicht sieht: Die Basis hat eine Funktion umbenannt, der Branch ruft sie an einer neuen Stelle unter dem alten Namen auf — kein textueller Konflikt, aber kaputt.
+## 5. Verify
 
-- **Ausführen, was das Projekt vorsieht.** Build, Tests, Linter, Typprüfung — wie in `CLAUDE.md`, `README`, `package.json`, `Makefile` oder der CI-Konfiguration beschrieben. Verifizieren heißt ausführen: Eine Verifikationszeile im Bericht, die keinen ausgeführten Befehl mit seinem Ergebnis nennt, ist keine. Läuft etwas nicht, sag das und benenne, was dadurch ungeprüft bleibt.
-- **Den Diff vergleichen.** `git diff <basis> HEAD` gegen den gesicherten `vorher.diff`: Der Unterschied darf nur dort liegen, wo du Konflikte aufgelöst hast, und dort, wo die Basis dieselben Dateien geändert hat. Eine Datei, die vorher im Branch-Diff war und jetzt fehlt, ist eine verlorene Änderung — es sei denn, du hast den zugehörigen Commit belegt übersprungen.
-- **Die Commits zählen.** `git log --oneline <basis>..HEAD` muss dieselben Betreffzeilen in derselben Reihenfolge zeigen wie vor dem Rebase, abzüglich der übersprungenen.
+A rebase without conflict markers is not yet correct. Compilers and tests see conflicts Git does not see: the base renamed a function, the branch calls it at a new spot under the old name — no textual conflict, but broken.
 
-Schlägt eine Prüfung fehl, kläre zuerst, ob der Rebase die Ursache ist: Betrifft sie Dateien, die beide Seiten geändert haben? Schlug sie auf dem Ausgangspunkt auch schon fehl? Ist der Rebase die Ursache, behebe es in einem eigenen, klar benannten Commit obenauf — in den ursprünglichen Commit käme die Korrektur nur mit einem interaktiven Rebase, den du hier nicht hast, und das sagst du im Bericht. War die Prüfung vorher schon rot, melde es und fasse es nicht an: Das ist nicht deine Baustelle.
+- **Run what the project provides.** Build, tests, linter, type check — as described in `CLAUDE.md`, `README`, `package.json`, `Makefile` or the CI configuration. Verifying means running: a verification line in the report that does not name an executed command with its result is not one. If something does not run, say so and name what remains unchecked as a result.
+- **Compare the diff.** `git diff <basis> HEAD` against the saved `vorher.diff`: the difference may only lie where you resolved conflicts and where the base changed the same files. A file that was in the branch diff before and is missing now is a lost change — unless you skipped the corresponding commit with evidence.
+- **Count the commits.** `git log --oneline <basis>..HEAD` must show the same subject lines in the same order as before the rebase, minus the skipped ones.
 
-Hast du in Abschnitt 3 gewechselt und läuft kein Rebase mehr — er ist durch, gegebenenfalls samt Reparatur-Commit —, dann zurück: `git switch <vorheriger Branch>`. Wer den Zielbranch angibt, will mit ihm nichts zu tun haben; auf ihm stehen zu bleiben wäre eine Überraschung. Schlägt der Rückwechsel fehl, etwa weil unversionierte Artefakte der Verifikation mit Dateien des vorherigen Branchs kollidieren, bleib stehen, melde es und erzwinge nichts. Wartet der Rebase dagegen auf eine Entscheidung, bleibt der Zielbranch ausgecheckt: Einen stehenden Rebase kann man nicht verlassen, ohne ihn abzubrechen — der Bericht sagt das und nennt den Rückwechsel als nächsten Schritt.
+If a check fails, first clarify whether the rebase is the cause: does it concern files both sides changed? Did it already fail on the starting point? If the rebase is the cause, fix it in a separate, clearly named commit on top — the fix would only get into the original commit with an interactive rebase, which you do not have here, and you say so in the report. If the check was already red before, report it and do not touch it: that is not your construction site.
 
-## 6. Übergeben
+If you switched in section 3 and no rebase is running anymore — it is through, including a repair commit if any — then switch back: `git switch <vorheriger Branch>`. Whoever names the target branch wants nothing to do with it; staying on it would be a surprise. If the switch back fails, e.g. because untracked artifacts from verification collide with files of the previous branch, stay put, report it and force nothing. If, on the other hand, the rebase is waiting for a decision, the target branch stays checked out: you cannot leave a stopped rebase without aborting it — the report says so and names the switch back as the next step.
+
+## 6. Hand off
 
 ```
 # Rebase: <ziel> auf <basis> — abgeschlossen | wartet auf Entscheidung | abgebrochen
@@ -120,18 +122,18 @@ Hast du in Abschnitt 3 gewechselt und läuft kein Rebase mehr — er ist durch, 
 - <wartet der Rebase: `git rebase --continue` nach eigener Auflösung oder `git rebase --abort`, danach `git switch <vorheriger Branch>`>
 ```
 
-Jeder Konflikt bekommt seinen Eintrag. Der Bericht ist die einzige Stelle, an der nachvollziehbar bleibt, warum eine Stelle jetzt so aussieht — die Commits selbst zeigen die Auflösung nicht mehr, weil sie aussehen, als hätte der Autor es gleich so geschrieben.
+Every conflict gets its entry. The report is the only place where it remains traceable why a spot looks the way it does now — the commits themselves no longer show the resolution, because they look as if the author had written it that way from the start.
 
-Mit `$branch` verdient der Rückweg besondere Sorgfalt. `ORIG_HEAD` zeigt nach dem Rückwechsel weiter auf den alten Stand des Zielbranchs, aber `git reset --hard ORIG_HEAD` trifft den ausgecheckten Branch — den des Menschen — und würde ihn zerstören. Darum nennt der Bericht `git branch -f <ziel> <sha>`; solange der Rebase steht, bleibt der Rückweg `git rebase --abort`. Und der Push braucht den Branchnamen, weil `git push` ohne Refspec den ausgecheckten Branch nähme.
+With `$branch`, the way back deserves special care. After the switch back, `ORIG_HEAD` still points to the old state of the target branch, but `git reset --hard ORIG_HEAD` hits the checked-out branch — the human's — and would destroy it. That is why the report names `git branch -f <ziel> <sha>`; as long as the rebase is stopped, the way back remains `git rebase --abort`. And the push needs the branch name, because `git push` without a refspec would take the checked-out branch.
 
-## 7. Haltung
+## 7. Stance
 
-Die erste Versuchung ist `--ours` oder `--theirs`. Es geht schnell, die Marker sind weg, und eine Seite ist stillschweigend zurückgesetzt — beim Rebase bemerkt das erst, wer die Änderung vermisst.
+The first temptation is `--ours` or `--theirs`. It is quick, the markers are gone, and one side is silently reverted — in a rebase, only whoever misses the change notices.
 
-Die zweite ist, im Konflikt nebenbei aufzuräumen: Formatierung, eine Umbenennung, ein Fehler, der einem auffällt. Jede Änderung, die nicht der Konflikt verlangt, macht den Rebase unlesbar; wer ihn prüft, kann Auflösung und Eigenmächtigkeit nicht mehr trennen. Beobachtungen gehören in den Bericht, nicht in den Commit.
+The second is tidying up on the side during the conflict: formatting, a rename, a bug you happen to notice. Every change the conflict does not require makes the rebase unreadable; whoever reviews it can no longer separate resolution from unrequested liberties. Observations belong in the report, not in the commit.
 
-Die dritte ist, einen nach dem Rebase roten Test zu „reparieren", indem man ihn anpasst. Der Test ist womöglich der Einzige, der den semantischen Konflikt bemerkt hat.
+The third is "fixing" a test that is red after the rebase by adjusting it. The test may be the only one that noticed the semantic conflict.
 
-Die vierte ist, zu pushen, weil alles grün ist. Der Rebase schreibt veröffentlichte Historie um, und das ist die Entscheidung des Menschen — mit `--force-with-lease`, nie mit `--force`.
+The fourth is pushing because everything is green. The rebase rewrites published history, and that is the human's decision — with `--force-with-lease`, never with `--force`.
 
-Und der Rebase ist jederzeit rückholbar: `git rebase --abort` während, `git reset --hard ORIG_HEAD` danach — oder `git branch -f <ziel> <sha>`, wenn du schon auf den vorherigen Branch zurückgewechselt bist —, `git reflog` immer. Schreib das in den Bericht, statt zu hoffen, dass es bekannt ist.
+And the rebase can be undone at any time: `git rebase --abort` during, `git reset --hard ORIG_HEAD` afterwards — or `git branch -f <ziel> <sha>` if you have already switched back to the previous branch —, `git reflog` always. Write that in the report instead of hoping it is known.

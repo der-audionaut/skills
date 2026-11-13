@@ -1,8 +1,8 @@
-# Vorlage für das Plandokument
+# Template for the plan document
 
-Struktur und Reihenfolge sind verbindlich. Abschnitte, die das Feature nicht berührt, lässt du weg statt sie leer zu lassen — ein leerer Abschnitt ist totes Wissen, bevor der Plan überhaupt angefasst wurde. Historie-Abschnitte legst du **nicht** an; die entstehen, wenn `/plan-review`, `/plan-implement` oder `/plan-lint` das erste Mal laufen.
+Structure and order are binding. Sections the feature does not touch you leave out rather than leaving them empty — an empty section is dead knowledge before the plan has even been touched. You do **not** create history sections; they arise when `/plan-review`, `/plan-implement` or `/plan-lint` run for the first time.
 
-Platzhalter in spitzen Klammern ersetzen, die Kommentare in Klammern nicht übernehmen.
+Replace placeholders in angle brackets; do not carry over the comments in parentheses.
 
 ---
 
@@ -104,11 +104,11 @@ Status: Entwurf
 
 ---
 
-## Hinweise zur Vorlage
+## Notes on the template
 
-- **Schrittübersicht und Parallel-Übersicht stehen vor allem anderen.** Sie sind der Grund, warum man den Plan öffnet; Ziel und Entwurf liest man beim zweiten Mal.
-- **Die drei Abhängigkeitsangaben müssen übereinstimmen** — Spalte "Abhängig von" in der Übersicht, Welle in beiden Tabellen, `Abhängig von` im Detailschritt. Widersprüche hier sind der häufigste Lint-Fund.
-- **Die Spalte `Welle` und der Kopfblock-`Status` nehmen später den Fortschritt auf.** `/plan-coding` hängt in der Schrittübersicht `✓ erledigt` an das Wellen-Kürzel (`W1 ✓ erledigt`), setzt im Detailschritt einen ersten Punkt `**Status:** erledigt <Datum>` und zählt im Kopfblock von `Entwurf` über `In Umsetzung — n von N Schritten erledigt` bis `Umgesetzt`. Deshalb bekommt die Tabelle keine eigene Statusspalte, und `Status: Entwurf` ist der Startwert, kein Platzhalter.
-- **Annahmen und offene Fragen bleiben im Dokument**, auch wenn sie beantwortet wurden — dann mit der Antwort daneben. Das Aufräumen erledigt `/plan-lint`, nicht der Autor.
-- **Eine andere Ausgabesprache übersetzt die Beschriftungen, nicht den Aufbau.** Überschriften, Spaltentitel, Kopfblock-Beschriftungen und Prosa erscheinen in der gewählten Sprache; Reihenfolge, Tabellen, Schrittnummern, die Wellen-Kürzel `W1, W2 …` und der Schlüssel `Claude-Session` bleiben unverändert, damit die Folge-Skills sie wiederfinden.
-- **Keine Code-Blöcke mit fertiger Implementierung** in den Schritten. Signaturen, Schemata und Beispiel-Payloads ja, ganze Funktionen nein: sie veralten zwischen Planung und Umsetzung und werden dann als Wahrheit gelesen.
+- **The step overview and the parallel overview come before everything else.** They are the reason anyone opens the plan; goal and design get read the second time around.
+- **The three dependency statements must agree** — the column "Abhängig von" in the overview, the wave in both tables, `Abhängig von` in the detailed step. Contradictions here are the most common lint finding.
+- **The `Welle` column and the header block's `Status` record progress later.** `/plan-coding` appends `✓ erledigt` to the wave code in the step overview (`W1 ✓ erledigt`), puts a first bullet `**Status:** erledigt <Datum>` into the detailed step, and counts in the header block from `Entwurf` via `In Umsetzung — n von N Schritten erledigt` to `Umgesetzt`. That is why the table gets no status column of its own, and `Status: Entwurf` is the starting value, not a placeholder.
+- **Assumptions and open questions stay in the document**, even once they are answered — then with the answer next to them. Cleaning up is the job of `/plan-lint`, not of the author.
+- **A different output language translates the labels, not the structure.** Headings, column titles, header block labels and prose appear in the chosen language; order, tables, step numbers, the wave codes `W1, W2 …` and the key `Claude-Session` stay unchanged so the follow-up skills can find them.
+- **No code blocks with finished implementation** in the steps. Signatures, schemas and example payloads yes, whole functions no: they go stale between planning and implementation and are then read as truth.

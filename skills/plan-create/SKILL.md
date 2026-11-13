@@ -1,99 +1,99 @@
 ---
 name: plan-create
-description: Erstellt aus einer Feature-Beschreibung ein Plandokument im Markdown-Format und legt es im Projekt ab — mit Session-ID, Schrittübersicht, Parallelisierungsübersicht und Entwurf für Architektur, Datenfluss, API, Schema und Caching. Nimmt die Feature-Beschreibung als Argument, optional gefolgt von der Ausgabesprache (Standard Deutsch).
-argument-hint: "[feature-beschreibung] [sprache]"
+description: Creates a plan document in Markdown from a feature description and stores it in the project — with session ID, step overview, parallelization overview and a design for architecture, data flow, API, schema and caching. Takes the feature description as argument, optionally followed by the output language (default German).
+argument-hint: "[feature-description] [language]"
 arguments: feature sprache
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Write Edit
 ---
 
-**Ausgabesprache: `$sprache`** — steht dort nichts oder ein Wort, das erkennbar keine Sprache benennt, Deutsch. Alles, was du an den Menschen richtest oder in die Plandatei schreibst, schreibst du in dieser Sprache: Plandokument, Rückfragen, Abbruchmeldungen, Übergabe. Dass diese Anweisung deutsch ist, ändert daran nichts.
+**Output language: `$sprache`** — if nothing is given there, or a word that recognizably names no language, German. Everything you address to the human or write into the plan file, you write in this language: plan document, follow-up questions, abort messages, handoff. That these instructions are in English changes nothing about this.
 
-Plane das Feature aus diesem Aufruf: **$ARGUMENTS**
+Plan the feature from this invocation: **$ARGUMENTS**
 
-Denke wie ein erfahrener Systemarchitekt: entwirf so, dass Wachstum den Entwurf nicht umwirft, und schneide dann die kleinste produktionsreife Fassung in Schritte. Das Ergebnis ist ein Dokument, kein Code — du implementierst hier nichts.
+Think like an experienced system architect: design so that growth does not overturn the design, and then cut the smallest production-ready version into steps. The result is a document, not code — you implement nothing here.
 
-## 1. Sprache und Feature auflösen
+## 1. Resolve language and feature
 
-**Sprache.** Die Ausgabesprache ist das letzte, optionale Argument — ein Sprachname oder Kürzel in beliebiger Schreibweise (`englisch`, `english`, `en`). Ohne Angabe bleibt es bei Deutsch, auch wenn die Feature-Beschreibung oder die Codebase englisch ist; wer den Plan in einer anderen Sprache will, gibt sie an.
+**Language.** The output language is the last, optional argument — a language name or code in any spelling (`englisch`, `english`, `en`). Without it, German stays, even if the feature description or the codebase is in English; whoever wants the plan in another language specifies it.
 
-Die Sprache ändert den Text, nicht die Struktur: Aufbau und Reihenfolge der Vorlage bleiben, ebenso die Tabellen; übersetzt werden Überschriften, Spaltentitel, Beschriftungen und Prosa. Die Schrittnummern, die Wellen-Kürzel `W1, W2 …` und der Schlüssel `Claude-Session` im Kopfblock bleiben in jeder Sprache gleich, weil `/plan-review`, `/plan-lint` und `/plan-coding` sie später referenzieren.
+The language changes the text, not the structure: layout and order of the template stay, and so do the tables; headings, column titles, labels and prose get translated. The step numbers, the wave codes `W1, W2 …` and the key `Claude-Session` in the header block stay the same in every language, because `/plan-review`, `/plan-lint` and `/plan-coding` reference them later.
 
-**Feature.** Die Feature-Beschreibung ist Fließtext, der Aufruf wird aber wie eine Shell-Kommandozeile in Wörter zerlegt. Steht die Beschreibung in Anführungszeichen, ist die Zuordnung eindeutig — `$feature` ist die Beschreibung, `$sprache` die Sprache — und so ist der Aufruf gemeint: `/plan-create "Rechnungsexport als CSV" english`. Ohne Anführungszeichen enthält `$sprache` nur das zweite Wort der Beschreibung; dann zählt der vollständige Aufruf oben:
+**Feature.** The feature description is free text, but the invocation is split into words like a shell command line. If the description is in quotes, the mapping is unambiguous — `$feature` is the description, `$sprache` the language — and that is how the invocation is meant: `/plan-create "Rechnungsexport als CSV" english`. Without quotes, `$sprache` holds only the second word of the description; then the full invocation above counts:
 
-1. Benennt sein letztes Wort erkennbar eine Sprache, ist das die Ausgabesprache und alles davor die Beschreibung.
-2. Sonst ist der ganze Aufruf die Beschreibung, und die Sprache bleibt Deutsch.
-3. Könnte das letzte Wort auch zur Beschreibung gehören („Login-Seite auf englisch"), rate nicht: nimm die Frage in die Rückfragen aus Abschnitt 3 auf und nimm bis zur Antwort Deutsch an.
+1. If its last word recognizably names a language, that is the output language and everything before it is the description.
+2. Otherwise the whole invocation is the description, and the language stays German.
+3. If the last word could also belong to the description ("Login-Seite auf englisch"), don't guess: add the question to the follow-up questions from section 3 and assume German until answered.
 
-## 2. Verstehen, bevor du planst
+## 2. Understand before you plan
 
-Erst die Codebase, dann der Plan. Ein Plan, der ohne Blick ins Projekt entsteht, erfindet Dateipfade und Muster.
+First the codebase, then the plan. A plan written without looking into the project invents file paths and patterns.
 
-- Wo im System sitzt das Feature? Welche Module, Endpunkte, Tabellen berührt es?
-- Gibt es das schon halb? Suche per Grep nach benachbarter Funktionalität, bevor du Neubau planst.
-- Welche Muster gelten hier — Schichtung, Fehlerbehandlung, Tests, Migrationen?
-- Lies `CLAUDE.md`, `CONTEXT.md`, ADRs und vorhandene Pläne im Projekt. Terminologie und getroffene Entscheidungen sind bindend.
+- Where in the system does the feature sit? Which modules, endpoints, tables does it touch?
+- Does it already half exist? Grep for neighboring functionality before you plan something new.
+- Which patterns apply here — layering, error handling, tests, migrations?
+- Read `CLAUDE.md`, `CONTEXT.md`, ADRs and existing plans in the project. Terminology and decisions already made are binding.
 
-## 3. Rückfragen stellen
+## 3. Ask follow-up questions
 
-Stell die Fragen, die den Plan verändern würden — gebündelt in einer Nachricht, höchstens fünf, jede mit deinem Vorschlag und einer kurzen Begründung, damit ein "passt" als Antwort reicht.
+Ask the questions that would change the plan — bundled in one message, at most five, each with your proposal and a short justification, so that a "passt" ("fine") suffices as an answer.
 
-Frag nach bei: Produktentscheidungen, Umfang und Abgrenzung, Verhalten in Sonderfällen, Kompatibilitätszusagen, Prioritäten. Frag **nicht** nach dem, was im Code steht — das liest du selbst.
+Ask about: product decisions, scope and boundaries, behavior in special cases, compatibility promises, priorities. Do **not** ask about what is in the code — you read that yourself.
 
-Bleibt eine Frage offen, plane mit deiner Annahme weiter, markiere sie im Plan als Annahme und trag die Frage in `## Offene Fragen` ein. Ein Plan, der auf eine Antwort wartet, ist wertlos; eine unmarkierte Annahme ist gefährlich.
+If a question remains open, keep planning with your assumption, mark it in the plan as an assumption and enter the question under `## Offene Fragen`. A plan waiting for an answer is worthless; an unmarked assumption is dangerous.
 
-## 4. Ablageort bestimmen
+## 4. Determine the storage location
 
-1. Liegen schon Pläne im Projekt (`docs/plans/`, `.claude/plans/`, `plans/`)? Dann dorthin, im dort üblichen Namensschema.
-2. Sonst `docs/plans/` anlegen.
-3. Dateiname aus der Feature-Beschreibung als Kebab-Case, kurz und sprechend, in der Ausgabesprache: `rechnungsexport-csv.md`, bei `english` `invoice-export-csv.md` — es sei denn, das Projekt gibt ein anderes Namensschema vor.
-4. Existiert die Datei bereits → nicht überschreiben. Nenne sie und frag, ob ergänzen oder neuer Name.
+1. Are there already plans in the project (`docs/plans/`, `.claude/plans/`, `plans/`)? Then put it there, in the naming scheme used there.
+2. Otherwise create `docs/plans/`.
+3. File name from the feature description in kebab case, short and descriptive, in the output language: `rechnungsexport-csv.md`, with `english` `invoice-export-csv.md` — unless the project prescribes a different naming scheme.
+4. If the file already exists → do not overwrite. Name it and ask whether to extend it or use a new name.
 
-## 5. Plan schreiben
+## 5. Write the plan
 
-Die vollständige Struktur steht in `${CLAUDE_SKILL_DIR}/references/plan-vorlage.md`. Verbindlich sind:
+The full structure is in `${CLAUDE_SKILL_DIR}/references/plan-template.md`. Binding are:
 
-- **Kopfblock** mit Feature, Datum, Status und `Claude-Session: ${CLAUDE_SESSION_ID}` — damit später nachvollziehbar ist, aus welcher Sitzung der Plan stammt.
-- **Schrittübersicht ganz oben**, als Tabelle, vor allem Fließtext. Wer den Plan öffnet, sieht zuerst die Arbeitsschritte.
-- **Parallel-Übersicht** direkt darunter, in Wellen.
-- Danach Ziel, Nicht-Ziele, Ist-Zustand, Entwurf, die Schritte im Detail, Teststrategie, Rollout, Risiken, offene Fragen.
+- **Header block** with feature, date, status and `Claude-Session: ${CLAUDE_SESSION_ID}` — so it can later be traced which session the plan came from.
+- **Step overview at the very top**, as a table, before any prose. Whoever opens the plan sees the work steps first.
+- **Parallel overview** directly below, in waves.
+- Then goal, non-goals, current state, design, the steps in detail, test strategy, rollout, risks, open questions.
 
-Zum Entwurf gehören Architektur und Einordnung, Komponentenschnitt, Datenfluss, Schnittstellen, Datenmodell und Migration sowie Caching — jeweils nur so weit, wie dieses Feature es berührt. Caching bekommt nur einen Abschnitt, wenn es einen belegten Bedarf gibt; sonst ein Satz, warum nicht. Was der Entwurf vorsieht, das Feature aber noch nicht braucht, gehört unter Nicht-Ziele, nicht in einen Schritt.
+The design covers architecture and placement, component split, data flow, interfaces, data model and migration, and caching — each only as far as this feature touches it. Caching only gets a section if there is a proven need; otherwise one sentence on why not. Whatever the design provides for but the feature does not need yet belongs under non-goals, not in a step.
 
-Die Vorlage ist deutsch. Bei einer anderen Ausgabesprache übersetzt du ihre Überschriften, Spaltentitel und Kopfblock-Beschriftungen beim Übernehmen — nicht erst beim Gegenlesen.
+The template is German, because German is the default output language. For a different output language you translate its headings, column titles and header block labels while carrying them over — not only during the cross-check.
 
-## 6. Schritte schneiden
+## 6. Cut the steps
 
-- Ein Schritt hat **ein** Anliegen und ein überprüfbares Ergebnis. Endet die Beschreibung bei "implementieren", ist er nicht fertig gedacht.
-- Nach jedem Schritt läuft das System. Kein kaputter Zwischenzustand.
-- Jeder Schritt nennt: Ergebnis, betroffene Dateien, Abhängigkeiten, Akzeptanzkriterium.
-- Migration vor Nutzung, Schnittstelle vor Verbraucher, Feature-Flag vor Rollout.
-- Zu groß ist ein Schritt, wenn er selbst wieder einen Plan bräuchte. Zu klein, wenn sein Ergebnis für sich genommen nichts bedeutet.
+- A step has **one** concern and a verifiable result. If the description ends at "implement", it is not thought through.
+- After each step the system runs. No broken intermediate state.
+- Each step names: result, affected files, dependencies, acceptance criterion.
+- Migration before use, interface before consumer, feature flag before rollout.
+- A step is too big if it would itself need a plan. Too small if its result means nothing on its own.
 
-## 7. Parallelität bestimmen
+## 7. Determine parallelism
 
-Zwei Schritte dürfen nur dann in dieselbe Welle, wenn **beides** gilt: keine fachliche Abhängigkeit, und keine gemeinsam geschriebenen Dateien. Gleichzeitig dieselbe Datei zu ändern ist kein Parallelisierungsgewinn, sondern ein Merge-Konflikt mit Umweg.
+Two steps may only go into the same wave if **both** hold: no functional dependency, and no files written by both. Changing the same file at the same time is no parallelization gain but a merge conflict with a detour.
 
-Typische Kollisionspunkte, die nie parallel laufen: Migrationen und Schemaänderungen, zentrale Konfiguration, Routen- und Container-Registrierung, gemeinsam genutzte Typen.
+Typical collision points that never run in parallel: migrations and schema changes, central configuration, route and container registration, shared types.
 
-Bilde daraus Wellen: W1 sind alle Schritte ohne Vorbedingung, W2 alles, was nur von W1 abhängt, und so weiter. Nenne je Welle die Schritte und die Dateien, an denen sie sich berühren könnten. Ergibt sich keine echte Parallelität, schreib genau das hin — eine erfundene Welle kostet später mehr als eine ehrliche Kette.
+Form waves from this: W1 is all steps without a precondition, W2 everything that depends only on W1, and so on. For each wave, name the steps and the files where they could touch. If no real parallelism results, write exactly that — an invented wave costs more later than an honest chain.
 
-## 8. Gegenlesen
+## 8. Cross-check
 
-Lies den geschriebenen Plan einmal vollständig, als hättest du ihn nicht selbst verfasst, und prüfe:
+Read the written plan once completely, as if you had not written it yourself, and check:
 
-- Deckt die Summe der Schritte das Ziel ab, und nichts darüber hinaus?
-- Stimmen die Abhängigkeiten in der Übersicht mit denen in den Schritten überein? Und mit den Wellen?
-- Ist jede erfundene Angabe raus — Dateien, Felder, Funktionen, die du nicht belegt hast?
-- Steht jede Annahme als Annahme da?
-- Steht der Plan durchgängig in der Ausgabesprache — auch die Überschriften und Tabellenköpfe, die aus der deutschen Vorlage stammen?
+- Does the sum of the steps cover the goal, and nothing beyond it?
+- Do the dependencies in the overview match those in the steps? And the waves?
+- Is every invented detail gone — files, fields, functions you have not verified?
+- Does every assumption stand as an assumption?
+- Is the plan in the output language throughout — including the headings and table headers that come from the German template?
 
-Korrigiere, was du findest, und lies erneut. Schluss ist, wenn ein Durchgang nichts Neues ergibt. Für die gründliche Prüfung verweise danach auf `/plan-lint` und `/plan-review` — die baust du hier nicht nach.
+Fix what you find and read again. You are done when a pass turns up nothing new. For the thorough review, point to `/plan-lint` and `/plan-review` afterwards — you don't rebuild those here.
 
-## 9. Übergeben
+## 9. Hand off
 
-Nenne den Pfad der Datei, die Anzahl der Schritte, die Wellen in einer Zeile und die offenen Fragen. Kein Wiederkäuen des Inhalts — der Plan steht ja in der Datei.
+Name the path of the file, the number of steps, the waves in one line and the open questions. No rehashing of the content — the plan is in the file.
 
-Ein Plan mit drei Schritten und einer offenen Frage ist ein besseres Ergebnis als einer mit zwölf Schritten und keiner. Wenn das Feature zu vage beschrieben ist, um Schritte zu schneiden, sag das, statt Struktur zu erfinden.
+A plan with three steps and one open question is a better result than one with twelve steps and none. If the feature is described too vaguely to cut steps, say so instead of inventing structure.
 
-Und bevor du absendest: Stehen Antwort und Plandatei in der Ausgabesprache? Die deutsche Anweisung und die deutsche Vorlage ziehen sonst ins Deutsche, auch wenn oben etwas anderes verlangt ist.
+And before you send: are the answer and the plan file in the output language? The English instructions and the German template otherwise pull toward their own language, even when something else was requested above.

@@ -1,92 +1,92 @@
 ---
 name: plan-refactoring-create
-description: Erstellt aus einer Codebase-Analyse ein Refactoring-Plandokument im Markdown-Format und legt es im Projekt ab — belegte Problemfelder mit Datei:Zeile, Zielarchitektur nach Clean-Architecture-Maßstäben mit neuer Ordnerstruktur und Schritte, die das Verhalten unverändert lassen; im Aufbau kompatibel zu plan-review, plan-lint und plan-coding. Nimmt optional einen Bereich (Pfad, Modul oder Fokus in Anführungszeichen) und die Ausgabesprache als Argumente; ohne Angabe die ganze Codebase und Deutsch.
-argument-hint: "[bereich] [sprache]"
+description: Creates a refactoring plan document in Markdown from a codebase analysis and stores it in the project — evidenced problem areas with file:line, a target architecture by Clean Architecture standards with a new folder structure, and steps that leave behavior unchanged; structurally compatible with plan-review, plan-lint and plan-coding. Optionally takes a scope (path, module or focus in quotes) and the output language as arguments; without them, the whole codebase and German.
+argument-hint: "[scope] [language]"
 arguments: bereich sprache
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Bash Write Edit
 ---
 
-**Ausgabesprache: `$sprache`** — steht dort nichts oder ein Wort, das erkennbar keine Sprache benennt, Deutsch. Alles, was du an den Menschen richtest oder in die Plandatei schreibst, schreibst du in dieser Sprache: Plandokument, Rückfragen, Abbruchmeldungen, Übergabe. Dass diese Anweisung deutsch ist, ändert daran nichts.
+**Output language: `$sprache`** — if it is empty or a word that clearly does not name a language, German. Everything you address to the human or write into the plan file, you write in this language: plan document, follow-up questions, abort messages, handoff. That these instructions are in English changes nothing about this.
 
-Plane das Refactoring für den Bereich `$bereich`. Denke wie ein erfahrener Entwickler, der eine große, fremde Codebase übernimmt und in eine saubere Architektur überführt: Belange trennen, Modularität erhöhen, Kopplung senken. Das Verhalten bleibt, die Struktur wird besser. Erst verstehen — Architektur und Datenfluss —, dann belegen, dann planen. Das Ergebnis ist ein Dokument, kein Code: Der verbesserte Code entsteht Schritt für Schritt über `/plan-coding`.
+Plan the refactoring for the scope `$bereich`. Think like an experienced developer who takes over a large, unfamiliar codebase and moves it into a clean architecture: separate concerns, increase modularity, lower coupling. The behavior stays, the structure gets better. First understand — architecture and data flow —, then gather evidence, then plan. The result is a document, not code: the improved code is produced step by step via `/plan-coding`.
 
-## 1. Argumente auflösen
+## 1. Resolve the arguments
 
-**Bereich.** `$bereich` ist ein Pfad (`src/billing`), ein Modulname oder ein Fokus in Anführungszeichen (`"Duplikate im Import"`). Leer heißt: die ganze Codebase. Sieht der Bereich wie ein Pfad aus, prüfst du ihn per Glob; gibt es ihn nicht, fragst du nach, statt stillschweigend alles zu analysieren.
+**Scope.** `$bereich` is a path (`src/billing`), a module name or a focus in quotes (`"Duplikate im Import"`). Empty means: the whole codebase. If the scope looks like a path, you check it via Glob; if it does not exist, you ask instead of silently analyzing everything.
 
-**Sprache.** Die Ausgabesprache ist das letzte, optionale Argument — ein Sprachname oder Kürzel in beliebiger Schreibweise (`englisch`, `english`, `en`). Der Aufruf wird wie eine Shell-Kommandozeile zerlegt, deshalb gilt der vollständige Aufruf **$ARGUMENTS**: Benennt sein letztes Wort erkennbar eine Sprache, ist das die Ausgabesprache und alles davor der Bereich — auch wenn davor nichts steht. Sonst ist der ganze Aufruf der Bereich, und die Sprache bleibt Deutsch. Könnte das letzte Wort auch zum Bereich gehören („auf englisch"), rate nicht: nimm die Frage in die Rückfragen aus Abschnitt 7 auf und nimm bis zur Antwort Deutsch an.
+**Language.** The output language is the last, optional argument — a language name or code in any spelling (`englisch`, `english`, `en`). The invocation is split like a shell command line, so the full invocation **$ARGUMENTS** applies: if its last word clearly names a language, that is the output language and everything before it is the scope — even if nothing comes before it. Otherwise the whole invocation is the scope, and the language stays German. If the last word could also belong to the scope („auf englisch"), do not guess: add the question to the follow-up questions from section 7 and assume German until the answer.
 
-Die Sprache ändert den Text, nicht die Struktur: Überschriften, Spaltentitel, Kopfblock-Beschriftungen und Prosa werden übersetzt; Schrittnummern, die Wellen-Kürzel `W1, W2 …`, die Kennungen `P1, P2 …` und der Schlüssel `Claude-Session` bleiben, weil `/plan-review`, `/plan-lint` und `/plan-coding` sie später referenzieren.
+The language changes the text, not the structure: headings, column titles, header block labels and prose are translated; step numbers, the wave codes `W1, W2 …`, the identifiers `P1, P2 …` and the key `Claude-Session` stay, because `/plan-review`, `/plan-lint` and `/plan-coding` reference them later.
 
-## 2. Orientieren
+## 2. Orient yourself
 
-Eine große Codebase lässt sich nicht vollständig lesen, und ein Plan, der so tut, erfindet. Lies deshalb in dieser Reihenfolge und halte an, sobald ein Bild steht: (1) Verzeichnisbaum bis Tiefe zwei, Manifeste, Build- und Testbefehle, `CLAUDE.md`, `CONTEXT.md`, ADRs — Terminologie und getroffene Entscheidungen sind bindend; (2) Einstiegspunkte: main, Routen, CLI, Handler, Jobs; (3) Hotspots: die dreißig am häufigsten geänderten Dateien aus `git log --format= --name-only -n 500 | sort | uniq -c | sort -rn | head -30` und die dreißig größten aus `git ls-files -- <bereich> | xargs wc -l | sort -rn | head -30`; (4) die Datenflüsse aus Abschnitt 3; (5) die Greps aus Abschnitt 4. Bash nutzt du nur lesend; die einzige Ausnahme ist der Baseline-Lauf unten. Ist das Verzeichnis kein Git-Repository, entfallen die Hotspots, und die Wartbarkeitsrisiken stützen sich auf Größe und Tests.
+A large codebase cannot be read completely, and a plan that pretends otherwise makes things up. So read in this order and stop as soon as a picture has formed: (1) directory tree to depth two, manifests, build and test commands, `CLAUDE.md`, `CONTEXT.md`, ADRs — terminology and decisions already made are binding; (2) entry points: main, routes, CLI, handlers, jobs; (3) hotspots: the thirty most frequently changed files from `git log --format= --name-only -n 500 | sort | uniq -c | sort -rn | head -30` and the thirty largest from `git ls-files -- <bereich> | xargs wc -l | sort -rn | head -30`; (4) the data flows from section 3; (5) the greps from section 4. You use Bash read-only; the only exception is the baseline run below. If the directory is not a Git repository, the hotspots are dropped, and the maintainability risks rest on size and tests.
 
-Die Baseline ist der Stand, gegen den jeder Schritt später gemessen wird. Führe den dokumentierten Test- oder Buildbefehl — aus `CLAUDE.md`, README, Manifest-Skripten oder Makefile — genau einmal aus, mit einem Zeitlimit von fünf Minuten und ohne Abhängigkeiten zu installieren, und notiere Befehl und Ergebnis unter „Build, Tests und Baseline": grün, rot mit den roten Tests, damit kein Schritt sie erbt, oder „unbekannt", wenn kein Befehl dokumentiert ist. Läuft er über das Limit, brich ab, notiere das als Ergebnis und starte keinen zweiten Versuch.
+The baseline is the state against which every step is measured later. Run the documented test or build command — from `CLAUDE.md`, README, manifest scripts or Makefile — exactly once, with a time limit of five minutes and without installing dependencies, and record command and result under „Build, Tests und Baseline": green, red with the red tests so that no step inherits them, or „unbekannt" (unknown) if no command is documented. If it runs over the limit, abort it, record that as the result and do not start a second attempt.
 
-Was du nicht gelesen hast, steht in der Architektur-Zusammenfassung unter „Nicht gelesen".
+What you did not read goes in the architecture summary under „Nicht gelesen".
 
-## 3. Datenfluss verfolgen
+## 3. Trace the data flow
 
-Wähle zwei bis drei zentrale Flüsse und verfolge jeden vom Einstieg bis zur Persistenz, als Kette von `Datei:Zeile`. Daran zeigen sich Schichtverletzungen und vermischte Belange zuverlässiger als an jeder Verzeichnisstruktur.
+Pick two to three central flows and trace each one from the entry point to persistence, as a chain of `file:line`. Layer violations and mixed concerns show up there more reliably than in any directory structure.
 
-## 4. Problemfelder sammeln
+## 4. Collect problem areas
 
-Lies jetzt `${CLAUDE_SKILL_DIR}/references/problemkategorien.md` ganz, bevor du den ersten Befund notierst — Teil A für die Befunde, Teil B für Abschnitt 5. Die Einleitung von Teil A regelt, was als Beleg zählt, woher die Kennzahlen kommen und was kein `P` wird. Jeder Befund wird ein `P<n>` mit Fundstelle, Befund, Beleg und Schwere.
+Now read `${CLAUDE_SKILL_DIR}/references/problem-categories.md` in full before you record the first finding — Part A for the findings, Part B for section 5. The introduction to Part A rules what counts as evidence, where the metrics come from and what does not become a `P`. Every finding becomes a `P<n>` with location, finding, evidence and severity.
 
-## 5. Strategien wählen
+## 5. Choose strategies
 
-Nach Teil B derselben Referenz: die kleinste Menge an Strategien, die jeden Befund löst, dem die Schwere-Skala aus Teil A eine Strategie zuweist.
+Following Part B of the same reference: the smallest set of strategies that resolves every finding to which the severity scale from Part A assigns a strategy.
 
-## 6. Zielarchitektur ableiten
+## 6. Derive the target architecture
 
-Aus Architektur-Zusammenfassung und Problemfeldern leitest du die vier Teile der Zielarchitektur aus der Vorlage ab: die Schichten mit Abhängigkeitsrichtung nach innen zur Domäne und benannten, begründeten Ausnahmen, wo das Framework sie erzwingt; die Zuständigkeit je Modul; die Ordnerstruktur vorher und nachher; die Umzugstabelle mit dem Schritt je Zeile. Die Importzahlen für „nachher" zählst du am geplanten Graphen, ohne zweiten Grep. Die Struktur folgt den Konventionen des Ökosystems und des Frameworks: Wo das Framework die Ablage vorgibt, bleibt sie, und die Trennung geschieht innerhalb seiner Vorgaben.
+From the architecture summary and the problem areas you derive the four parts of the target architecture from the template: the layers with the dependency direction pointing inward to the domain, and named, justified exceptions where the framework forces them; the responsibility per module; the folder structure before and after; the relocation table with the step per row. You count the import numbers for "after" on the planned graph, without a second grep. The structure follows the conventions of the ecosystem and the framework: where the framework dictates the layout, it stays, and the separation happens within its constraints.
 
-## 7. Rückfragen stellen
+## 7. Ask follow-up questions
 
-Stell die Fragen, die den Plan verändern würden — gebündelt in einer Nachricht, höchstens fünf, jede mit deinem Vorschlag und einer kurzen Begründung, damit ein „passt" als Antwort reicht: die Zielarchitektur (Schichtenschnitt und Ordnerstruktur bestätigen), die Priorität (Struktur, Performance oder Wartbarkeit zuerst), die Grenzen (öffentliche API, Datenbankschema, Dateiformate, die unverändert bleiben müssen), Bereiche, die nicht angefasst werden dürfen, und das Budget an Schritten. Frag **nicht** nach dem, was im Code steht — das liest du selbst.
+Ask the questions that would change the plan — bundled in one message, at most five, each with your proposal and a short justification, so that a "fine" suffices as an answer: the target architecture (confirm the layer split and folder structure), the priority (structure, performance or maintainability first), the boundaries (public API, database schema, file formats that must stay unchanged), areas that must not be touched, and the budget of steps. Do **not** ask about what is in the code — you read that yourself.
 
-Bleibt eine Frage offen, plane mit deiner Annahme weiter, markiere sie im Plan als Annahme und trag die Frage in `## Offene Fragen` ein.
+If a question stays open, keep planning with your assumption, mark it as an assumption in the plan and enter the question in `## Offene Fragen`.
 
-## 8. Ablageort bestimmen
+## 8. Determine the storage location
 
-1. Liegen schon Pläne im Projekt (`docs/plans/`, `.claude/plans/`, `plans/`)? Dann dorthin, im dort üblichen Namensschema.
-2. Sonst `docs/plans/` anlegen.
-3. Dateiname `refactoring-<bereich>.md` in Kebab-Case; ohne Bereich `refactoring-<projektname>.md` mit dem Namen aus Manifest oder Verzeichnis; bei `english` entsprechend `refactoring-<scope>.md`.
-4. Existiert die Datei bereits → nicht überschreiben. Nenne sie und frag, ob ergänzen oder neuer Name.
+1. Are there already plans in the project (`docs/plans/`, `.claude/plans/`, `plans/`)? Then put it there, following the naming scheme used there.
+2. Otherwise create `docs/plans/`.
+3. File name `refactoring-<bereich>.md` in kebab case; without a scope `refactoring-<projektname>.md` with the name from the manifest or directory; for `english` correspondingly `refactoring-<scope>.md`.
+4. If the file already exists → do not overwrite. Name it and ask whether to extend it or use a new name.
 
-## 9. Plan schreiben
+## 9. Write the plan
 
-Die vollständige Struktur steht in `${CLAUDE_SKILL_DIR}/references/refactoring-vorlage.md`; Struktur und Reihenfolge sind verbindlich. Der Kopfblock trägt `Refactoring`, `Bereich`, `Erstellt`, `Claude-Session: ${CLAUDE_SESSION_ID}` und `Status: Entwurf`; Schrittübersicht und Parallel-Übersicht stehen ganz oben. Die Datei schreibst du einmal, nachdem Schritte, Wellen und Gegenlesen aus den Abschnitten 10 bis 12 stehen. Die Vorlage ist deutsch; bei einer anderen Ausgabesprache übersetzt du ihre Beschriftungen beim Übernehmen, nicht erst beim Gegenlesen.
+The complete structure is in `${CLAUDE_SKILL_DIR}/references/refactoring-template.md`; structure and order are binding. The header block carries `Refactoring`, `Bereich`, `Erstellt`, `Claude-Session: ${CLAUDE_SESSION_ID}` and `Status: Entwurf`; the step overview and the parallel overview come first. You write the file once, after the steps, waves and cross-check from sections 10 to 12 are settled. The template is German because German is the default output language; for a different output language you translate its labels while adopting them, not only during the cross-check.
 
-## 10. Schritte schneiden
+## 10. Cut the steps
 
-Ein Schritt hat ein Anliegen und ein überprüfbares Ergebnis und nennt Ergebnis, betroffene Dateien, Abhängigkeiten, Verhaltensschutz und Akzeptanz. Für ein Refactoring kommt dazu: Ein Schritt ist eine Refactoring-Bewegung, und Struktur ändert sich nie im selben Schritt wie Verhalten — ein Umzug ändert deshalb nur Pfade, Namespaces beziehungsweise Packages und Importe, damit Git die Umbenennung erkennt und der Diff lesbar bleibt. Die Reihenfolge ist Charakterisierungstest vor Naht, Naht vor Verschiebung, Verschiebung vor Löschung. Nach jedem Schritt laufen Build und Tests im Stand der Baseline, also ohne neue rote Tests. Zu groß ist ein Schritt, wenn er selbst wieder einen Plan bräuchte; zu klein, wenn sein Ergebnis für sich genommen nichts bedeutet.
+A step has one concern and a verifiable result and states result, affected files, dependencies, behavior guard and acceptance. For a refactoring, add: a step is one refactoring move, and structure never changes in the same step as behavior — a relocation therefore changes only paths, namespaces or packages, and imports, so that Git detects the rename and the diff stays readable. The order is characterization test before seam, seam before move, move before deletion. After every step, build and tests run at the baseline state, i.e. without new red tests. A step is too big if it would itself need a plan; too small if its result means nothing on its own.
 
-## 11. Parallelität bestimmen
+## 11. Determine parallelism
 
-Zwei Schritte dürfen nur dann in dieselbe Welle, wenn beides gilt: keine fachliche Abhängigkeit und keine gemeinsam geschriebenen Dateien. Schritte am selben Modul laufen nie parallel; Charakterisierungstests verschiedener Bereiche dürfen gemeinsam in W1. Bilde Wellen: W1 sind alle Schritte ohne Vorbedingung, W2 alles, was nur von W1 abhängt, und so weiter; nenne je Welle die Berührungspunkte. Ergibt sich keine echte Parallelität, schreib genau das hin.
+Two steps may go into the same wave only if both hold: no functional dependency and no jointly written files. Steps on the same module never run in parallel; characterization tests for different areas may go together in W1. Form waves: W1 is all steps without a precondition, W2 everything that depends only on W1, and so on; name the touchpoints for each wave. If there is no real parallelism, write exactly that.
 
-## 12. Gegenlesen
+## 12. Cross-check
 
-Prüfe den verfassten Text, als hättest du ihn nicht selbst geschrieben — am Text, nicht durch erneutes Lesen der Datei:
+Check the composed text as if you had not written it yourself — on the text, not by re-reading the file:
 
-- Deckt die Summe der Schritte das Ziel ab, und nichts darüber hinaus?
-- Stimmen die Abhängigkeiten in Übersicht, Wellen und Schritten überein?
-- Ändert ein Schritt beobachtbares Verhalten?
-- Zeigen die Abhängigkeiten der Zielarchitektur nach innen, oder ist jede Ausnahme dort benannt und begründet?
-- Hat jede Zeile der Umzugstabelle einen Schritt? Hat jedes `P` eine Strategie oder ein Nicht-Ziel, und hat jede Strategie mindestens einen Schritt?
-- Steht unter „Nicht gelesen", was ungelesen blieb? Ist jede erfundene Angabe raus, jede Annahme als Annahme markiert, und steht alles in der Ausgabesprache?
+- Does the sum of the steps cover the goal, and nothing beyond it?
+- Do the dependencies in the overview, the waves and the steps agree?
+- Does any step change observable behavior?
+- Do the dependencies of the target architecture point inward, or is every exception named and justified there?
+- Does every row of the relocation table have a step? Does every `P` have a strategy or a non-goal, and does every strategy have at least one step?
+- Is what stayed unread listed under „Nicht gelesen"? Is every made-up detail gone, every assumption marked as an assumption, and is everything in the output language?
 
-Korrigiere, was du findest, und prüfe erneut, bis ein Durchgang nichts Neues ergibt. Für die gründliche Prüfung verweise danach auf `/plan-lint` und `/plan-review`.
+Fix what you find and check again until a pass turns up nothing new. For the thorough check, point to `/plan-lint` and `/plan-review` afterwards.
 
-## 13. Übergeben
+## 13. Hand off
 
-Nenne den Pfad der Datei, die Zahl der `P` je Kategorie und Schwere, die Zielarchitektur in einem Satz (Schichten, Zahl der Umzüge), die Zahl der Schritte, die Wellen in einer Zeile, die offenen Fragen, was ungelesen blieb und was der Baseline-Lauf im Arbeitsverzeichnis hinterlassen hat (`git status --porcelain`). Kein Wiederkäuen des Inhalts — der Plan steht in der Datei.
+Name the path of the file, the number of `P` per category and severity, the target architecture in one sentence (layers, number of relocations), the number of steps, the waves in one line, the open questions, what stayed unread and what the baseline run left behind in the working directory (`git status --porcelain`). No rehashing of the content — the plan is in the file.
 
-## 14. Haltung
+## 14. Stance
 
-Die Versuchungen dieses Skills: neu schreiben statt refaktorieren; eine Schablonen-Architektur über ein Framework stülpen, das seine eigene Ablage hat; alles auf einmal umziehen; Fehler nebenbei beheben; Performance aus dem Bauch beurteilen; zufällige Ähnlichkeit als Duplikat zusammenführen; Geschmack als Problem ausgeben; einen Schritt planen, nach dem die Tests nicht laufen; einen Befund ohne `Datei:Zeile` notieren; Vollständigkeit behaupten, wo Stichproben gelesen wurden. Ein Plan mit drei belegten Problemfeldern und einer offenen Frage ist besser als einer mit zwölf vermuteten und keiner.
+The temptations of this skill: rewriting instead of refactoring; forcing a template architecture onto a framework that has its own layout; relocating everything at once; fixing bugs along the way; judging performance by gut feeling; merging coincidental similarity as a duplicate; passing off taste as a problem; planning a step after which the tests do not run; recording a finding without `file:line`; claiming completeness where samples were read. A plan with three evidenced problem areas and one open question is better than one with twelve suspected ones and none.
 
-Und bevor du absendest: Stehen Antwort und Plandatei in der Ausgabesprache? Die deutsche Anweisung und die deutsche Vorlage ziehen sonst ins Deutsche, auch wenn oben etwas anderes verlangt ist.
+And before you send: are the answer and the plan file in the output language? Otherwise the German template pulls toward German and these English instructions toward English, even when something else was requested above.

@@ -1,10 +1,10 @@
-# Vorlage für das Refactoring-Plandokument
+# Template for the refactoring plan document
 
-Die Kopfblock-Schlüssel `Claude-Session` und `Status`, die Tabellenköpfe von `## Arbeitsschritte` und `## Parallel abarbeitbar`, `## Schritte` mit `### Schritt N — <Titel>` und der Hinweis zur Fortschrittsmarkierung stammen wörtlich aus `skills/plan-create/references/plan-vorlage.md` und werden hier nachgezogen, wenn sich dort die Markierungslogik von `/plan-coding` ändert — nur so finden `/plan-review`, `/plan-lint` und `/plan-coding` in einem Refactoring-Plan dieselben Anker wie in einem Feature-Plan.
+The header block keys `Claude-Session` and `Status`, the table headers of `## Arbeitsschritte` and `## Parallel abarbeitbar`, `## Schritte` with `### Schritt N — <Titel>` and the note on progress marking are taken verbatim from `skills/plan-create/references/plan-template.md` and are brought in line here whenever the marking logic of `/plan-coding` changes there — only then do `/plan-review`, `/plan-lint` and `/plan-coding` find the same anchors in a refactoring plan as in a feature plan.
 
-Struktur und Reihenfolge sind verbindlich. Abschnitte, die das Refactoring nicht berührt, lässt du weg statt sie leer zu lassen — ein leerer Abschnitt ist totes Wissen, bevor der Plan überhaupt angefasst wurde. Historie-Abschnitte legst du **nicht** an; die entstehen, wenn `/plan-review`, `/plan-coding` oder `/plan-lint` das erste Mal laufen.
+Structure and order are binding. Sections the refactoring does not touch you leave out instead of leaving them empty — an empty section is dead knowledge before the plan has even been touched. Do **not** create history sections; they come into being when `/plan-review`, `/plan-coding` or `/plan-lint` run for the first time.
 
-Platzhalter in spitzen Klammern ersetzen, die Kommentare in Klammern nicht übernehmen.
+Replace placeholders in angle brackets; do not carry over the comments in parentheses.
 
 ---
 
@@ -67,7 +67,7 @@ Status: Entwurf
 
 ## Problemfelder
 
-<Jeder Befund hat einen Beleg; was sich nicht belegen lässt, ist eine offene Frage, kein Befund. Merkmale, Belegregeln und Schwere je Kategorie stehen in `problemkategorien.md`, Teil A.>
+<Jeder Befund hat einen Beleg; was sich nicht belegen lässt, ist eine offene Frage, kein Befund. Merkmale, Belegregeln und Schwere je Kategorie stehen in `problem-categories.md`, Teil A.>
 
 ### Strukturprobleme
 
@@ -123,7 +123,7 @@ src/                        src/
 ### Strategie 1 — <Titel>
 - **Löst:** P<n>, P<m>
 - **Zielzustand:** <wie der Bereich danach aussieht>
-- **Technik:** <aus `problemkategorien.md`, Teil B>
+- **Technik:** <aus `problem-categories.md`, Teil B>
 - **Reihenfolge:** <die Schritte dieser Strategie in ihrer Folge, etwa „Schritt 1 → 3">
 - **Verhaltensschutz:** <welche Tests das Verhalten dieser Strategie festhalten>
 - **Verworfene Alternative:** <was auch ginge und warum nicht>
@@ -167,15 +167,15 @@ src/                        src/
 
 ---
 
-## Hinweise zur Vorlage
+## Notes on the template
 
-- **Schrittübersicht und Parallel-Übersicht stehen vor allem anderen.** Sie sind der Grund, warum man den Plan öffnet; Ziel und Zielarchitektur liest man beim zweiten Mal.
-- **Die drei Abhängigkeitsangaben müssen übereinstimmen** — Spalte "Abhängig von" in der Übersicht, Welle in beiden Tabellen, `Abhängig von` im Detailschritt. Widersprüche hier sind der häufigste Lint-Fund.
-- **Die Spalte `Welle` und der Kopfblock-`Status` nehmen später den Fortschritt auf.** `/plan-coding` hängt in der Schrittübersicht `✓ erledigt` an das Wellen-Kürzel (`W1 ✓ erledigt`), setzt im Detailschritt einen ersten Punkt `**Status:** erledigt <Datum>` und zählt im Kopfblock von `Entwurf` über `In Umsetzung — n von N Schritten erledigt` bis `Umgesetzt`. Deshalb bekommt die Tabelle keine eigene Statusspalte, und `Status: Entwurf` ist der Startwert, kein Platzhalter.
-- **Jedes `P` hat eine Strategie oder steht mit Grund unter Nicht-Ziele**, und eine Strategie ohne `P` ist Vorwegnahme — sie löst kein belegtes Problem.
-- **`Verhaltensschutz` ist Pflichtpunkt, kein Schmuck.** Ein Schritt ohne Testbefehl oder Charakterisierungstests ist nicht fertig gedacht; fehlt dem Pfad ein Test, kommt ein Charakterisierungstest-Schritt in einer früheren Welle davor.
-- **Jede Zeile der Umzugstabelle nennt den Schritt, der sie ausführt**, und ein Umzug ändert nur Pfade, Namespaces und Importe, keine Logik. Eine Zeile ohne Schritt ist eine Lücke in der Schrittfolge; ein Schritt, der an einen Ort verschiebt, den der Ordnerbaum nicht kennt, ist ein Widerspruch.
-- **Vermutete Fehler werden gelistet, nicht behoben.** Eine Korrektur ändert Verhalten und gehört in einen eigenen Plan.
-- **Annahmen und offene Fragen bleiben im Dokument**, auch wenn sie beantwortet wurden — dann mit der Antwort daneben. Das Aufräumen erledigt `/plan-lint`, nicht der Autor.
-- **Eine andere Ausgabesprache übersetzt die Beschriftungen, nicht den Aufbau.** Überschriften, Spaltentitel, Kopfblock-Beschriftungen und Prosa erscheinen in der gewählten Sprache; Reihenfolge, Tabellen, Schrittnummern, die Wellen-Kürzel `W1, W2 …`, die `P`-Kennungen und der Schlüssel `Claude-Session` bleiben unverändert, damit die Folge-Skills sie wiederfinden.
-- **Keine Code-Blöcke mit fertiger Implementierung** in den Schritten. Signaturen, Ordnerbäume und Beispiel-Payloads ja, ganze Funktionen nein: sie veralten zwischen Planung und Umsetzung und werden dann als Wahrheit gelesen.
+- **The step overview and the parallel overview come before everything else.** They are the reason you open the plan; goal and target architecture are what you read the second time.
+- **The three dependency statements must agree** — the column "Abhängig von" in the overview, the wave in both tables, `Abhängig von` in the detailed step. Contradictions here are the most common lint finding.
+- **The `Welle` column and the header block `Status` record progress later.** `/plan-coding` appends `✓ erledigt` to the wave code in the step overview (`W1 ✓ erledigt`), sets a first bullet `**Status:** erledigt <Datum>` in the detailed step and counts in the header block from `Entwurf` via `In Umsetzung — n von N Schritten erledigt` to `Umgesetzt`. That is why the table gets no status column of its own, and `Status: Entwurf` is the starting value, not a placeholder.
+- **Every `P` has a strategy or is listed under non-goals with a reason**, and a strategy without a `P` is anticipation — it solves no evidenced problem.
+- **`Verhaltensschutz` is a mandatory bullet, not decoration.** A step without a test command or characterization tests is not thought through; if the path lacks a test, a characterization-test step in an earlier wave comes before it.
+- **Every row of the relocation table names the step that carries it out**, and a relocation changes only paths, namespaces and imports, no logic. A row without a step is a gap in the step sequence; a step that moves something to a place the folder tree does not know is a contradiction.
+- **Suspected bugs are listed, not fixed.** A fix changes behavior and belongs in a plan of its own.
+- **Assumptions and open questions stay in the document**, even once they are answered — then with the answer next to them. Cleaning up is done by `/plan-lint`, not the author.
+- **A different output language translates the labels, not the structure.** Headings, column titles, header block labels and prose appear in the chosen language; order, tables, step numbers, the wave codes `W1, W2 …`, the `P` identifiers and the key `Claude-Session` stay unchanged so that the downstream skills find them again.
+- **No code blocks with finished implementation** in the steps. Signatures, folder trees and example payloads yes, whole functions no: they go stale between planning and implementation and are then read as truth.
