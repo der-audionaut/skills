@@ -1,21 +1,21 @@
 ---
 name: tool-check-renovate-pr-in-repo
-description: Checks the open Renovate PRs of a GitHub repository in a fresh clone — each dependency pair with tool-dep-update-check in its own subagent —, implements necessary adaptations as one commit per package on the PR branch, checks them for completeness, verifies them, and pushes and approves only after one bundled approval by the human; until then nothing leaves the machine. Takes the repo URL as argument, optionally followed by PR numbers in quotes that restrict the run to those PRs.
-argument-hint: "[repoUrl] [prs]"
-arguments: repoUrl prs
+description: Checks the open Renovate PRs of a GitHub repository in a fresh clone — each dependency pair with tool-dep-update-check in its own subagent —, implements necessary adaptations as one commit per package on the PR branch, checks them for completeness, verifies them, and pushes and approves only after one bundled approval by the human; until then nothing leaves the machine. Takes the repository name as `owner/repo` as argument, optionally followed by PR numbers in quotes that restrict the run to those PRs.
+argument-hint: "[owner/repo] [prs]"
+arguments: repo prs
 disable-model-invocation: true
 allowed-tools: Bash Read Grep Glob Edit Write Agent Skill
 ---
 
 **Output language: German.** You write the report, follow-up questions and abort messages in German, even if repository, PR titles and changelogs are in English. That these instructions are in English changes nothing about this. Quotes from PR bodies, identifiers, commands and error messages stay as they are.
 
-Check the open Renovate PRs of the GitHub repository `$repoUrl` — all of them, or with `$prs` only the named ones. Work like someone who, before clicking review, answers the question a Renovate PR otherwise answers only after the merge: can this project carry the update, and what would need to be done for it? Every dependency pair — one package with source and target version — is checked by `tool-dep-update-check`; you clone, inventory, classify, delegate, implement necessary adaptations in the clone and report. You change nothing externally without a yes: commits are created in the clone, and whether they reach the repository and the PR gets an approval is decided by the human in exactly one bundled approval; you never touch the human's working copy.
+Check the open Renovate PRs of the GitHub repository `$repo` — all of them, or with `$prs` only the named ones. Work like someone who, before clicking review, answers the question a Renovate PR otherwise answers only after the merge: can this project carry the update, and what would need to be done for it? Every dependency pair — one package with source and target version — is checked by `tool-dep-update-check`; you clone, inventory, classify, delegate, implement necessary adaptations in the clone and report. You change nothing externally without a yes: commits are created in the clone, and whether they reach the repository and the PR gets an approval is decided by the human in exactly one bundled approval; you never touch the human's working copy.
 
 Three rules carry the whole procedure: writing happens only under this run's temp directory — in the clone and in the report files next to it —, never in the directory the skill was started from. Every statement about a PR has a check report behind it, and where none could be produced, the reason stands instead of a verdict. And nothing leaves the machine without a yes: until the approval this skill only reads GitHub; afterwards it writes exactly two things — the push of its own commits and the approval —, and only for the PRs the human named.
 
 ## 1. Arguments and prerequisites
 
-**Repository.** `$repoUrl` is mandatory. Accepted are `https://github.com/<owner>/<repo>`, with or without `.git`, with a path suffix like `/pulls`, the SSH form `git@github.com:<owner>/<repo>.git` and the short form `<owner>/<repo>`. All of these are mapped to `<owner>/<repo>`; anything that cannot be mapped — empty, not a GitHub host, only an owner — names the invocation `/tool-check-renovate-pr-in-repo <repoUrl> [prs]` and aborts. Do not guess a repository from the working copy: whoever starts the skill names the repo.
+**Repository.** `$repo` is mandatory and expects the repository name as `<owner>/<repo>`, for example `octo-org/billing`. Also accepted, for whoever pastes a link: `https://github.com/<owner>/<repo>`, with or without `.git`, with a path suffix like `/pulls`, and the SSH form `git@github.com:<owner>/<repo>.git`. Every accepted form is mapped to `<owner>/<repo>`, and from here on only that form is used; anything that cannot be mapped — empty, not a GitHub host, only an owner — names the invocation `/tool-check-renovate-pr-in-repo <owner/repo> [prs]` and aborts. Do not guess a repository from the working copy: whoever starts the skill names the repo.
 
 **PR selection.** `$prs` is optional: PR numbers as one argument in quotes (`"12 15"`), separated by spaces or commas, with or without `#`. Without it, every open Renovate PR applies. A named number that has no open Renovate PR is not a reason to abort — it goes in the report under „Übersprungen" with the reason „kein offener Renovate-PR".
 
@@ -23,7 +23,7 @@ Three rules carry the whole procedure: writing happens only under this run's tem
 
 1. `command -v gh` — if it is missing, abort and point to the installation per https://cli.github.com. There is no substitute via `curl` and a token.
 2. `gh auth status` — if it exits with code 1, abort and name `gh auth login`.
-3. `gh repo view <owner>/<repo> --json viewerPermission,defaultBranchRef` — `viewerPermission` must be `WRITE`, `MAINTAIN` or `ADMIN`; `READ` or `TRIAGE` means push and approval would be impossible, and you abort and say so. An error here usually means: the repo does not exist, a typo in the URL, or no access; quote `gh`'s response. Remember the name of the default branch from `defaultBranchRef.name`.
+3. `gh repo view <owner>/<repo> --json viewerPermission,defaultBranchRef` — `viewerPermission` must be `WRITE`, `MAINTAIN` or `ADMIN`; `READ` or `TRIAGE` means push and approval would be impossible, and you abort and say so. An error here usually means: the repo does not exist, a typo in the repository name, or no access; quote `gh`'s response. Remember the name of the default branch from `defaultBranchRef.name`.
 
 Everything else — Node, PHP, Java, package managers — is needed not by this skill but by the trial run of `tool-dep-update-check`, and that reports on its own what it is missing.
 
