@@ -1,5 +1,5 @@
 ---
-name: plan-implement
+name: plan-coding
 description: Implements a single step from a feature plan — first a design in the manner of a system architect, then the minimal production-ready implementation, then finding rounds until nothing new turns up, then a `/simplify` pass over the step's files if that skill is available and verification stays green afterwards, then the commit of the step with a message from `write-commit-message` if that skill is available — not the plan file, not on the default branch, not with red verification, not over someone else's changes, and never a push — and finally the update of the plan — history, done marker in step overview, detailed step and header block, insights for later steps. Takes plan name and step as arguments; without a step, it works through all open steps in wave order, one complete cycle and commit per step, and halts at the first step that does not end green with either a commit or no changes.
 argument-hint: "[plan-file] [step — empty: all open steps]"
 arguments: plan schritt

@@ -1,6 +1,6 @@
 # Template for the plan document
 
-Structure and order are binding. Sections the feature does not touch you leave out rather than leaving them empty — an empty section is dead knowledge before the plan has even been touched. You do **not** create history sections; they arise when `/plan-review`, `/plan-implement` or `/plan-lint` run for the first time.
+Structure and order are binding. Sections the feature does not touch you leave out rather than leaving them empty — an empty section is dead knowledge before the plan has even been touched. You do **not** create history sections; they arise when `/plan-review`, `/plan-coding` or `/plan-lint` run for the first time.
 
 Replace placeholders in angle brackets; do not carry over the comments in parentheses.
 
