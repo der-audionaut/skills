@@ -1,7 +1,7 @@
 ---
 name: plan-implement
-description: Implements a single step from a feature plan — first a design in the manner of a system architect, then the minimal production-ready implementation, then finding rounds until nothing new turns up, then a `/simplify` pass over the step's files if that skill is available and verification stays green afterwards, then the commit of the step with a message from `write-commit-message` if that skill is available — not the plan file, not on the default branch, not with red verification, not over someone else's changes, and never a push — and finally the update of the plan — history, done marker in step overview, detailed step and header block, insights for later steps. Takes plan name and step as arguments.
-argument-hint: "[plan-file] [step]"
+description: Implements a single step from a feature plan — first a design in the manner of a system architect, then the minimal production-ready implementation, then finding rounds until nothing new turns up, then a `/simplify` pass over the step's files if that skill is available and verification stays green afterwards, then the commit of the step with a message from `write-commit-message` if that skill is available — not the plan file, not on the default branch, not with red verification, not over someone else's changes, and never a push — and finally the update of the plan — history, done marker in step overview, detailed step and header block, insights for later steps. Takes plan name and step as arguments; without a step, it works through all open steps in wave order, one complete cycle and commit per step, and halts at the first step that does not end green with either a commit or no changes.
+argument-hint: "[plan-file] [step — empty: all open steps]"
 arguments: plan schritt
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Edit Write Bash Skill
@@ -9,9 +9,9 @@ allowed-tools: Read Grep Glob Edit Write Bash Skill
 
 **Output language: the language of the plan.** You write the design, reports, follow-up questions, abort messages and history in the language the plan is written in — until the plan has been read, in German. Code, identifiers, comments and tests follow the existing code, not this rule. That these instructions are in English changes nothing about this.
 
-Implement step `$schritt` from the plan `$plan`. Think like an experienced system architect: design soundly for growth, then build the minimal version that can run in production. Not the whole future, but also no design that has to be thrown over at the first rise in load.
+Implement step `$schritt` from the plan `$plan` — or, if no step was given, all its open steps one after another (see "Without a step" below). Think like an experienced system architect: design soundly for growth, then build the minimal version that can run in production. Not the whole future, but also no design that has to be thrown over at the first rise in load.
 
-You implement exactly this one step. Not the next one, not half of the one after.
+You implement exactly one step per cycle. Not the next one, not half of the one after.
 
 ## 1. Resolve plan and step
 
@@ -21,7 +21,7 @@ You implement exactly this one step. Not the next one, not half of the one after
 2. Otherwise glob `**/*$plan*.md`, preferably in `docs/plans/`, `.claude/plans/`, `plans/`, `docs/`, project root.
 3. Multiple hits → list them and abort instead of guessing.
 
-**Step.** `$schritt` can be a number, a heading or a fragment of one. No argument given → name the still open steps — those whose row in the step overview carries no `✓ erledigt` suffix in the `Welle` column — and ask which one is meant. Ambiguous → the same.
+**Step.** `$schritt` can be a number, a heading or a fragment of one. Ambiguous → name the candidates and ask which one is meant. No argument given → you do not ask: you work through all open steps one after another, as described under "Without a step: all open steps in sequence" below.
 
 **Language.** The output language is the language of the plan. The header block and headings decide — not quotes, identifiers or code blocks, which in a German plan are often English. The language changes the text, not the structure: the report format stays, only its labels are translated.
 
@@ -38,6 +38,44 @@ You implement exactly this one step. Not the next one, not half of the one after
 If the directory is not a Git repository, you note that: section 5 is then skipped for that reason, everything else runs as usual.
 
 Read the whole plan, not just the step. A step read in isolation gets implemented wrong in isolation. Check in the `## Umsetzungs-Historie` and in any `## Review-Historie` what earlier steps have already changed or left behind as insight.
+
+## Without a step: all open steps in sequence
+
+If no step was given — the step argument is empty —, you implement every open step of the plan — wave by wave, and within a wave step by step. Each step runs through the complete cycle of sections 2 to 6 on its own: its own design, its own finding rounds, its own `/simplify` pass, its own commit, its own markers in the plan. The waves only decide the order; steps never run in parallel or share a cycle.
+
+**Queue.** The queue comes from the step overview, in the template `## Arbeitsschritte`: every row whose `Welle` column carries no `✓` after the wave code — `✓ erledigt`, or its translation in a plan in another language (`✓ done`, see section 6). Rows with `✗` (`✗ abgebrochen`, `✗ aborted`) belong to it and are retried at their place. Sort numerically by wave number, ignoring any status suffix (`W2` before `W10`), then numerically by step number. If a row has no readable wave code, abort before the first step, name the row and point to `/plan-lint`. If the step overview is missing or has no `Welle` column, abort before the first step and point to `/plan-lint` — an empty queue must never stand for a plan that cannot be read. If every row carries `✓`, report that all steps are done and stop. Otherwise output the queue once — step, title, wave —, then run the precheck below, and start without asking for confirmation: whoever leaves out the step wants the run.
+
+**Precheck.** A run whose first step cannot be committed would only implement that step and then halt — so you check up front, against the starting state of section 1, whether the directory is a Git repository and whether preconditions 2 to 4 of section 5 hold — the ones that do not depend on the step. If one fails, abort before the first step — no file touched, no plan change — name the reason and point to the single-step invocation `/plan-coding <plan> <step>`, which still implements a step where it cannot be committed. If the default branch is unknown, ask the follow-up question of section 5 now, once; the answer applies to every step of the run. On "default branch", "no commit" or no answer, abort as above. Then check the leftovers of earlier runs: for every queued step that carries `✗`, and every step marked `✓` whose latest `Commit:` line in the history says that no commit was made — `keiner — <Grund>`, in a plan in another language its translation such as `none — <reason>` — for a reason other than "keine Änderungen" (`no changes`), take the paths of its latest `Geändert:` line. If one of them is modified in the starting state, abort as above and name the step and the paths: the human has to commit or reset them first, otherwise the retried step could not commit, or later steps would build on uncommitted changes.
+
+**Per step.** Before every step after the first:
+
+1. Read the plan **again** — section 6 of any earlier step may have added, removed, renumbered or rewritten steps (see "Insights" and the re-check there). The queue itself stays the one you output at the start: you only implement steps the human saw before the run. That is why you keep, from the start of the run, each queued step's number, heading and detailed section as they read then, and identify a queued step by its title — the heading without the `Schritt <X> —` prefix —, not by its number, because section 6 may renumber. Take the next step of that queue as it reads now. A step whose title is gone — section 6 removed it, deleting the row and adjusting N in the header block — is skipped. A step whose title was not in the queue was added during the run and is not implemented — the run report names it, and the next invocation picks it up after the human has seen it. If the goal or scope of the next queued step now differs substantially from the version kept at the start, halt before it.
+2. Record the starting state **again**, as in section 1. After the previous commit it is a different one; the plan file still does not count (section 5).
+
+**Halt.** After each step, the run continues only if the step terminated green **and** was committed — or terminated green with an empty path list, because it changes no file (see section 5, "Empty path list"). Every other outcome stops the run, and the remaining steps stay untouched: `✗ abgebrochen`, red verification, an abort in section 2 because the plan does not hold, a queued step that section 6 substantially rewrote, no commit for any reason other than "keine Änderungen" (or its translation, `no changes`), and any question to the human. Halting on a missing commit is required by the fifth precondition in section 5: the next step could not commit where files overlap, and its changes would mix with those of its predecessor.
+
+**Continue.** If the step allows continuing, go on with the next step right after its final round report — no question, no pause, no summary in between. A run that ended early can be resumed with the same invocation, because the finished steps are marked in the plan.
+
+**Run report.** When the queue is empty or a halt applies, output — after the last step's report — one report over the whole run:
+
+```
+# Umsetzung: <Plan> — alle Schritte
+
+**Lauf:** vollständig | Warteschlange abgearbeitet — <n> neue Schritte offen | angehalten bei Schritt <X> — <Haltegrund>
+**Plan:** <Status-Zeile aus dem Kopfblock>
+**Rückweg:** `git reset --soft <SHA vor dem Lauf>` — nimmt alle Commits des Laufs zurück
+
+| Schritt | Welle | Ergebnis | Commit |
+|---------|-------|----------|--------|
+| 1 | W1 | erledigt | a1b2c3d |
+| 2 | W1 | erledigt ohne Änderungen | — |
+| 3 | W2 | abgebrochen | — |
+| 4 | W3 | nicht begonnen | — |
+```
+
+The `Ergebnis` column takes exactly one of: `erledigt`, `erledigt ohne Änderungen`, `erledigt, nicht committet — <Grund>` (green, but section 5 made no commit), `abgebrochen`, `erneut abgebrochen` (the step already carried `✗` at the start), `angehalten vor Umsetzung — <Grund>` (abort in section 2; the plan stays unmarked, as in a single-step run), `angehalten — Schritt im Lauf umgeschrieben, bitte prüfen`, `entfallen` (section 6 removed it during the run), `nicht begonnen`, `neu im Lauf — nicht begonnen` (section 6 added it during the run). Every step of the starting queue gets a row, and so does every step added during the run. The SHA before the run is `git rev-parse --short HEAD`, noted right after the precheck, before the first step; the way back in each step's round report only holds as long as no later commit followed it, so the run report names the one for the whole run. The SHAs come from the `Commit:` line of each step's latest entry in the plan's `## Umsetzungs-Historie` — a retried step has several —, found by Grep, not from memory. Below the table, list every path that a step of the run left under "Nicht zugeordnet": the next step's starting state absorbs them, so this is the only place they still show up.
+
+The run is long. If, after many steps, you are unsure about a detail of these instructions, read `${CLAUDE_SKILL_DIR}/SKILL.md` again instead of reconstructing it from memory.
 
 ## 2. Design before code
 
@@ -115,7 +153,7 @@ The section "Nicht zugeordnet" (unassigned) is dropped if it would be empty.
 
 Once the loop has terminated green, you commit the step — only it, only on the branch you found, and never with a push. Before that, `/simplify` runs exactly once over the step's files, if that skill is available — see "Simplify" below. The commit is a result, not a condition: every precondition that does not hold is a reason for "no commit", never a reason to abort. Report and plan are written in any case; the reason goes in the `Commit:` line. If the directory is not a Git repository, exactly that is the reason, and the rest of this section is skipped.
 
-**Preconditions.** All five must hold:
+**Preconditions.** All five must hold — with an empty path list only the first, see "Empty path list" below:
 
 - The loop terminated green — not aborted after three rounds without progress, verification green. You do not commit a red state, not even "so as not to lose anything": in the working directory it is safe, in the history it would be a claim that isn't true.
 - A branch is checked out, and it is not the default branch. On `main` the human commits, not you. If the default branch is unknown, the human decides — see "Follow-up question" below.
@@ -126,6 +164,8 @@ Once the loop has terminated green, you commit the step — only it, only on the
 **Files of the step.** What counts is your own list: the union of the "Geändert" entries of all rounds — modified, created, deleted and renamed paths — plus the products you explicitly assign to one of these paths: the lockfile for the changed manifest, the snapshot for the changed test, the generated code for the changed source. Each assignment gets a half-sentence in the report. Every changed manifest raises the question of its lockfile — a forgotten one leaves a commit that doesn't build without it.
 
 `git status` serves as a check, not as a supplement. Every path on your list must appear there; if one is missing, the list is wrong, and you clear that up before you stage. Paths that now appear in `git status` but are neither in the starting state nor on your list — verification artifacts, files touched by the formatter, unknowns — you do **not** stage: they go into the report under "Nicht zugeordnet", and the human decides afterwards. Paths from the starting state that you did not touch stay untouched. You never stage the plan file.
+
+**Empty path list.** If your list is empty after the finding loop — for instance a pure check or measurement step — stage, simplify, message and commit are dropped: the `Simplify:` line says "übersprungen — keine Änderungen", the `Commit:` line "keiner — keine Änderungen", and section 6 marks the step done. Outside a Git repository, "not a Git repository" stays the reason, as above. Branch, index and operation do not matter when there is nothing to commit, and the follow-up question below is not asked.
 
 **Stage.** `git add -- <paths>` with the path list — never `-A`, never `.`.
 
@@ -167,7 +207,7 @@ If no such skill is on the list or the invocation fails, the fallback applies on
 
 Afterwards `git rev-parse --short HEAD` and the subject for the `Commit:` line. The way back is `git reset --soft HEAD~1`; it keeps the changes in the index, and it goes in the report. You never push, never create a branch, never stash — that is the human's decision, as with a rebase.
 
-**Follow-up question.** If the default branch is unknown — no `<remote>/HEAD`, no `main`, no `master` — you do not commit on your own. First update the plan as for "no commit" with the reason "Default-Branch nicht erkennbar, Rückfrage offen", output the report, and then, as the very last thing, ask whether the checked-out branch is the default branch and whether to commit. On a yes, you stage, simplify and commit as above, change the `Commit:` line in the history to the SHA, and output an addendum to the report. If no answer comes, it stays at the updated plan without a commit. The question comes at the end and not already in section 1, so that implementation and plan are finished before the run waits for an answer.
+**Follow-up question.** If the default branch is unknown — no `<remote>/HEAD`, no `main`, no `master` — you do not commit on your own. First update the plan as for "no commit" with the reason "Default-Branch nicht erkennbar, Rückfrage offen", output the report, and then, as the very last thing, ask whether the checked-out branch is the default branch and whether to commit. On a yes, you stage, simplify and commit as above, change the `Commit:` line in the history to the SHA, and output an addendum to the report. If no answer comes, it stays at the updated plan without a commit. The question comes at the end and not already in section 1, so that implementation and plan are finished before the run waits for an answer. Without a step argument, the precheck asks it instead (see "Precheck"), because a question after every step would halt the run after the first one; a "yes" there is the answer for every step of the run — commit as usual, and record no open question.
 
 ## 6. Update the plan
 
@@ -214,6 +254,8 @@ At the commit there are four temptations: staging everything because `git add -A
 When simplifying, the temptation is to believe the skill's summary and not run verification again — or to keep half of a red pass because it looks nice. The index holds the checked state; whatever the skill lays on top is either green again or gone.
 
 When updating, the temptation is to append the history and consider the plan updated. But the human reads the plan from the top, and a step overview without check marks tells them: nothing happened. The three markers are therefore not decoration but what they read the state from — and the Grep check exists so that you don't report them as set from memory.
+
+In a run over all steps, the temptation is to keep the loop going: to pass over a red or uncommitted step because the next one looks independent, or to merge two small steps into one cycle because it would be faster. Both take away what the run is for — one checked, committed and marked step after the other. A halted run leaves its state in the plan to resume from; a run that skipped something leaves none.
 
 And if the plan is wrong at this point, that is a result, not an obstacle. Say so instead of building around it.
 
