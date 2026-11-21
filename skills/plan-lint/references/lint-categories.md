@@ -28,6 +28,7 @@ Hallmark: the same thing, represented differently. Both places may be meant corr
 - **Types and formats.** Field as integer in the schema section, as string in the API. Timestamps sometimes with, sometimes without time zone.
 - **Numbering and ordering.** Steps that jump after an insertion; references to "step 4" that is now step 5, or to a `P<n>` that does not exist under `## Problemfelder`. Unify only when the target is unambiguous, otherwise present it and leave it — the reference may indicate a missing problem area.
 - **Problem areas** (refactoring plans). A `P` without strategy and without non-goal — present, do not delete: the strategy or the reason is missing.
+- **Components** (frontend plans). A `K` with status `neu` or `erweitert` under `## Komponentenkatalog` that no step builds — present, do not delete: the step or the reason is missing.
 - **Granularity.** One step in five sub-points, the next as one sentence — a hint that the second one has not been thought through.
 - **Register.** Domain term here, technical synonym there, for the same concept.
 - **Structure.** Steps with acceptance criterion and steps without, in the same plan.
@@ -60,4 +61,4 @@ The same decision usually appears four or five times in a plan, in different cha
 - **Schema versus access patterns.** Do described queries assume indexes or relations the schema does not have?
 - **Caching versus data flow.** Who writes the data, and does invalidation in the described order even arrive before the next read? A cache without a named invalidation path is a contradiction, not a detail.
 - **Caching versus consistency promise.** The plan promises immediate visibility in one place and sets a validity duration in another.
-- **Design versus step sequence.** Does the design describe an end state the steps together never reach — such as a row of the relocation table without a step? And conversely: a step that leads to a place the design — in a refactoring plan, the folder tree — does not know?
+- **Design versus step sequence.** Does the design describe an end state the steps together never reach — such as a row of the relocation table without a step? And conversely: a step that leads to a place the design — in a refactoring plan, the folder tree; in a frontend plan, the component catalogue — does not know?

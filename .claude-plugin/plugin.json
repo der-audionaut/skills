@@ -1,6 +1,6 @@
 {
   "name": "skills",
-  "description": "Personal skills: news-* produces researched briefings, plan-* creates, reviews, lints and implements feature, refactoring and optimization plans, tool-* handles chores such as rebasing, checking a dependency update, and checking and approving Renovate PRs.",
+  "description": "Personal skills: news-* produces researched briefings, plan-* creates, reviews, lints and implements feature, refactoring, optimization and frontend plans, tool-* handles chores such as rebasing, checking a dependency update, and checking and approving Renovate PRs.",
   "author": {
     "name": "der-audionaut",
     "url": "https://github.com/der-audionaut"
