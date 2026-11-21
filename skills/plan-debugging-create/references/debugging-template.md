@@ -55,7 +55,7 @@ Status: Entwurf
 <Der betroffene Pfad vom Einstieg bis zum Symptom als Kette von Datei:Zeile, mit dem, was an jeder Station mit den Daten passiert.>
 
 ### Build und Tests
-<Die dokumentierten Befehle und das Ergebnis des Laufs zum Zeitpunkt der Analyse: grün, rot mit den roten Tests, oder „unbekannt", wenn kein Befehl dokumentiert ist.>
+<Die dokumentierten Befehle und das Ergebnis des Laufs zum Zeitpunkt der Analyse: grün, rot mit den roten Tests, „unbekannt", wenn kein Befehl dokumentiert ist, oder „nicht ausgeführt — lädt nicht versionierte Konfiguration (<Datei oder Variablen>)".>
 
 ### Nicht gelesen
 <Was ungelesen blieb und warum.>
