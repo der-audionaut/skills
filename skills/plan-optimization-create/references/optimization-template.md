@@ -60,10 +60,10 @@ Status: Entwurf
 <Zwei bis drei Pfade vom Einstieg bis zum Ergebnis, je als Kette von Datei:Zeile, mit der Datenmenge je Station.>
 
 ### Build und Tests
-<Die dokumentierten Befehle und das Ergebnis des Laufs zum Zeitpunkt der Analyse: grün, rot mit den roten Tests, oder „unbekannt", wenn kein Befehl dokumentiert ist.>
+<Die dokumentierten Befehle und das Ergebnis des Laufs zum Zeitpunkt der Analyse: grün, rot mit den roten Tests, „unbekannt", wenn kein Befehl dokumentiert ist, oder „nicht ausgeführt — lädt nicht versionierte Konfiguration (<Datei oder Variablen>)".>
 
 ### Baseline-Messung
-<Der dokumentierte Messbefehl, die Zahl der Läufe, die Umgebung (lokaler Rechner, nicht CI), bei nur einem Lauf der Vermerk „Einzelmessung, Streuung unbekannt"; die Werte je Kennzahl stehen in den Zielwerten. Ohne Befehl: „nicht gemessen".>
+<Der dokumentierte Messbefehl, die Zahl der Läufe, die Umgebung (lokaler Rechner, nicht CI), bei nur einem Lauf der Vermerk „Einzelmessung, Streuung unbekannt"; die Werte je Kennzahl stehen in den Zielwerten. Ohne Befehl oder ohne Lauf wegen der Umgebungsprüfung: „nicht gemessen", mit dem Grund.>
 
 ### Nicht gelesen
 <Was ungelesen blieb und warum.>

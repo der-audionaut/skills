@@ -70,6 +70,17 @@ Applies when the plan has a `## Komponentenarchitektur` section; otherwise skip.
 - Does every step have the `**Zustände:**` (states) bullet? Run the grep with line numbers for `^## |^### Schritt |^- \*\*Zustände:\*\*` and count from its output, not from reading — a missing bullet between long step texts is easy to read past. Under `## Schritte`, every step heading is followed by exactly one Zustände hit before the next heading; catalogue and history do not count. A step without it is a blocker, and the grep output is its evidence; a step without UI carries „keine" (none) with a reason.
 - Do the states a step names exist in the catalogue entry of its `K`, and does its accessibility check point to a criterion of the standard under `### Maßstab Barrierefreiheit`?
 
+## Bug fix (plans with root-cause analysis)
+Applies when the plan has a `## Ursachenanalyse` section or its translation; otherwise skip. A question prefixed with „Bei `## …`:" applies only when the plan has that section.
+- Does every step have the `**Regressionstest:**` (regression test) bullet? A grep with line numbers for `^## |^### Schritt |^- \*\*(Regressionstest|Vorgehen|Akzeptanz):\*\*` (in another language with the translated labels) shows it and the next question at once: under `## Schritte`, every step heading is followed by exactly one Regressionstest hit; history does not count. A step without regression test is a blocker.
+- Does every fix step demand the red run before the fix — its `**Vorgehen:**` begins with running the new test against the current state, its `**Akzeptanz:**` asks for the output excerpt before and after? A fix step without the red run is a blocker — unless it is a follow-up fix step whose `Akzeptanz` names a manual check in production and why no local red run is possible.
+- Does the fix act at the `**Fundstelle:**` of `### Grundursache`, or only where the symptom shows, and does the step sequence remove the symptom described under `## Fehlerbild und Reproduktion`?
+- Is the root cause classified `belegt` only with a reproduction under `## Fehlerbild und Reproduktion` — or a confirming diagnosis result of a predecessor plan — and a gapless causal chain? Is a `Verdacht` cause followed by a diagnosis step as the last step and by no fix steps, with the fix only sketched under `## Lösung`? A `Verdacht` plan with fix, similar-place or edge-case steps is a blocker. Does planned diagnostic logging record only shape, type, length or a keyed hash, never personal values, tokens, credentials or a plain hash of them?
+- Bei `## Randfälle`: Does every row name a step or `Nicht-Ziel` with a reason in its `Abdeckung` column, and does the named step test that edge case?
+- In a follow-up plan that names a predecessor: does it rest on a diagnosis result stated by the human, and does it carry over only the fix of the confirmed hypothesis and, if noted for removal, the removal of the diagnostic logging — or, if none was confirmed, a new diagnosis step and no fix?
+- Does every hypothesis under `### Hypothesen` carry a status and the evidence for it? Is a rejected hypothesis rejected by its check, not by assertion?
+- Do log excerpts, inputs and stack traces in the plan contain personal values, tokens or credentials that are not replaced by `<redacted>`?
+
 ## Operations
 - Feature flag or direct rollout? Who switches it, by which criterion?
 - Rollback possible, and without data loss?

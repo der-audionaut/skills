@@ -60,7 +60,7 @@ Status: Entwurf
 <Zwei bis drei Flüsse vom Einstieg bis zur Persistenz, je als Kette von Datei:Zeile.>
 
 ### Build, Tests und Baseline
-<Die dokumentierten Befehle und das Ergebnis des Laufs zum Zeitpunkt der Analyse: grün, rot mit den roten Tests, oder „unbekannt", wenn kein Befehl dokumentiert ist.>
+<Die dokumentierten Befehle und das Ergebnis des Laufs zum Zeitpunkt der Analyse: grün, rot mit den roten Tests, „unbekannt", wenn kein Befehl dokumentiert ist, oder „nicht ausgeführt — lädt nicht versionierte Konfiguration (<Datei oder Variablen>)".>
 
 ### Nicht gelesen
 <Was ungelesen blieb und warum.>

@@ -1,5 +1,5 @@
 ---
-name: plan-implement
+name: plan-coding
 description: Implements a single step from a feature plan — first a design in the manner of a system architect, then the minimal production-ready implementation, then finding rounds until nothing new turns up, then a `/simplify` pass over the step's files if that skill is available and verification stays green afterwards, then the commit of the step with a message from `write-commit-message` if that skill is available — not the plan file, not on the default branch, not with red verification, not over someone else's changes, and never a push — and finally the update of the plan — history, done marker in step overview, detailed step and header block, insights for later steps. Takes plan name and step as arguments; without a step, it works through all open steps in wave order, one complete cycle and commit per step, and halts at the first step that does not end green with either a commit or no changes.
 argument-hint: "[plan-file] [step — empty: all open steps]"
 arguments: plan schritt
@@ -96,6 +96,7 @@ If the design deviates from the plan, say so now and justify it. If the plan doe
 - Error cases belong in the same pass as the happy path, not in a later round.
 - No scope creep. Whatever you notice along the way that does not belong to this step goes into "Erkenntnisse für spätere Schritte" (insights for later steps).
 - Tests for what this step claims to be able to do — at the level the project usually uses.
+- A step with a `**Regressionstest:**` bullet (or its translation, such as `**Regression test:**`) goes test first: write the test, run it against the unchanged code and keep the failure for the `Rot vor Fix:` line, then change the production code. A test written alongside the fix can no longer show red without undoing the fix. If the bullet reads „keiner — …", as for a diagnosis step, or the test pins behavior the unchanged code already handles correctly, the line reads `Rot vor Fix: keiner — <Grund>`.
 
 ## 4. Finding rounds
 
@@ -127,6 +128,7 @@ Report per round — the final round's report you output only after section 6, s
 **Status:** Findings offen | Abgeschlossen
 **Geändert:** <Dateien>
 **Verifikation:** <Befehl> → <Ergebnis>
+**Rot vor Fix:** <Testname> → <Fehlermeldung, gekürzt> | keiner — <Grund>
 **Simplify:** übernommen — <Dateien> | keine Änderungen | verworfen — <Grund> | übersprungen — <Grund> | noch nicht
 **Commit:** <sha> „<Betreff>" — Rückweg `git reset --soft HEAD~1` | keiner — <Grund> | noch nicht
 **Plan:** Schritt <X> markiert in Schrittübersicht, Detailschritt und Kopfblock; Historie fortgeschrieben | noch nicht
@@ -147,7 +149,7 @@ Report per round — the final round's report you output only after section 6, s
 - <was der Plan an anderer Stelle jetzt anders sehen muss>
 ```
 
-The section "Nicht zugeordnet" (unassigned) is dropped if it would be empty.
+The section "Nicht zugeordnet" (unassigned) is dropped if it would be empty. The line `Rot vor Fix:` appears only for a step with a `**Regressionstest:**` bullet, as in a debugging plan: it names the test you ran against the unchanged code before the fix and the failure it showed, shortened and with personal values, tokens and credentials replaced by `<redacted>`, because the history lives in the repository — the evidence that the test catches the bug, which the final green run cannot give. A test that did not go red is reported there with the reason, not passed over.
 
 ## 5. Commit
 
@@ -219,6 +221,7 @@ Only once the finding loop has terminated do you touch the plan — and that als
 ## Umsetzungs-Historie
 ### Schritt 3 (W2) — <Datum> — abgeschlossen in 2 Runden
 - Geändert: src/billing/invoice.ts, migrations/0042_add_status.sql
+- Rot vor Fix: test_full_page_has_size_items → AssertionError: 9 != 10 (nur bei Schritten mit Regressionstest)
 - Commit: a1b2c3d „Billing: Add status column to invoice export" | keiner — Default-Branch `main` ausgecheckt
 - Simplify: übernommen — doppelte Statusprüfung in invoice.ts zusammengezogen | keine Änderungen | verworfen — Verifikation rot | übersprungen — Skill nicht verfügbar
 - Abweichung: Statusfeld als Enum statt String — bestehendes Muster in order.ts
@@ -227,7 +230,7 @@ Only once the finding loop has terminated do you touch the plan — and that als
 - Erkenntnis: Schritt 5 kann den alten Export-Pfad nicht mehr voraussetzen
 ```
 
-In a plan in another language, the new section carries the translated heading — `## Implementation History` — and its entries follow the plan language; the template here is German because German is the default output language, not because the section would have to be. The label `Commit:` is translated along with it; SHA and subject stay as Git has them.
+In a plan in another language, the new section carries the translated heading — `## Implementation History` — and its entries follow the plan language; the template here is German because German is the default output language, not because the section would have to be. The labels `Commit:` and `Rot vor Fix:` are translated along with it (`Red before fix:`); SHA and subject stay as Git has them.
 
 **Marking the step.** The history sits at the end of the file, and nobody looks there first. Whoever opens the plan sees the step overview — and if it still says `W1` without a suffix there, the step is open for them, no matter what the history says further down. That is why you mark the step in three places, all three, in exactly this form:
 
