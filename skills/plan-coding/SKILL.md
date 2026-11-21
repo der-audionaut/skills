@@ -43,7 +43,9 @@ Read the whole plan, not just the step. A step read in isolation gets implemente
 
 If no step was given — the step argument is empty —, you implement every open step of the plan — wave by wave, and within a wave step by step. Each step runs through the complete cycle of sections 2 to 6 on its own: its own design, its own finding rounds, its own `/simplify` pass, its own commit, its own markers in the plan. The waves only decide the order; steps never run in parallel or share a cycle.
 
-**Queue.** The queue comes from the step overview, in the template `## Arbeitsschritte`: every row whose `Welle` column carries no `✓` after the wave code — `✓ erledigt`, or its translation in a plan in another language (`✓ done`, see section 6). Rows with `✗` (`✗ abgebrochen`, `✗ aborted`) belong to it and are retried at their place. Sort numerically by wave number, ignoring any status suffix (`W2` before `W10`), then numerically by step number. If a row has no readable wave code, abort before the first step, name the row and point to `/plan-lint`. If the queue is empty, report that all steps are done and stop. Otherwise output the queue once — step, title, wave — and start without asking for confirmation: whoever leaves out the step wants the run.
+**Queue.** The queue comes from the step overview, in the template `## Arbeitsschritte`: every row whose `Welle` column carries no `✓` after the wave code — `✓ erledigt`, or its translation in a plan in another language (`✓ done`, see section 6). Rows with `✗` (`✗ abgebrochen`, `✗ aborted`) belong to it and are retried at their place. Sort numerically by wave number, ignoring any status suffix (`W2` before `W10`), then numerically by step number. If a row has no readable wave code, abort before the first step, name the row and point to `/plan-lint`. If the step overview is missing or has no `Welle` column, abort before the first step and point to `/plan-lint` — an empty queue must never stand for a plan that cannot be read. If every row carries `✓`, report that all steps are done and stop. Otherwise output the queue once — step, title, wave —, then run the precheck below, and start without asking for confirmation: whoever leaves out the step wants the run.
+
+**Precheck.** A run whose first step cannot be committed would only implement that step and then halt — so you check up front, against the starting state of section 1, whether the directory is a Git repository and whether preconditions 2 to 4 of section 5 hold — the ones that do not depend on the step. If one fails, abort before the first step — no file touched, no plan change — name the reason and point to the single-step invocation `/plan-coding <plan> <step>`, which still implements a step where it cannot be committed. If the default branch is unknown, ask the follow-up question of section 5 now, once; the answer applies to every step of the run. On "default branch", "no commit" or no answer, abort as above. Then check the leftovers of earlier runs: for every queued step that carries `✗`, and every step marked `✓` whose latest `Commit:` line in the history says that no commit was made — `keiner — <Grund>`, in a plan in another language its translation such as `none — <reason>` — for a reason other than "keine Änderungen" (`no changes`), take the paths of its latest `Geändert:` line. If one of them is modified in the starting state, abort as above and name the step and the paths: the human has to commit or reset them first, otherwise the retried step could not commit, or later steps would build on uncommitted changes.
 
 **Per step.** Before every step after the first:
 
@@ -53,6 +55,25 @@ If no step was given — the step argument is empty —, you implement every ope
 **Halt.** After each step, the run continues only if the step terminated green **and** was committed — or terminated green with an empty path list, because it changes no file (see section 5, "Empty path list"). Every other outcome stops the run, and the remaining steps stay untouched: `✗ abgebrochen`, red verification, an abort in section 2 because the plan does not hold, a queued step that section 6 substantially rewrote, no commit for any reason other than "keine Änderungen" (or its translation, `no changes`), and any question to the human. Halting on a missing commit is required by the fifth precondition in section 5: the next step could not commit where files overlap, and its changes would mix with those of its predecessor.
 
 **Continue.** If the step allows continuing, go on with the next step right after its final round report — no question, no pause, no summary in between. A run that ended early can be resumed with the same invocation, because the finished steps are marked in the plan.
+
+**Run report.** When the queue is empty or a halt applies, output — after the last step's report — one report over the whole run:
+
+```
+# Umsetzung: <Plan> — alle Schritte
+
+**Lauf:** vollständig | Warteschlange abgearbeitet — <n> neue Schritte offen | angehalten bei Schritt <X> — <Haltegrund>
+**Plan:** <Status-Zeile aus dem Kopfblock>
+**Rückweg:** `git reset --soft <SHA vor dem Lauf>` — nimmt alle Commits des Laufs zurück
+
+| Schritt | Welle | Ergebnis | Commit |
+|---------|-------|----------|--------|
+| 1 | W1 | erledigt | a1b2c3d |
+| 2 | W1 | erledigt ohne Änderungen | — |
+| 3 | W2 | abgebrochen | — |
+| 4 | W3 | nicht begonnen | — |
+```
+
+The `Ergebnis` column takes exactly one of: `erledigt`, `erledigt ohne Änderungen`, `erledigt, nicht committet — <Grund>` (green, but section 5 made no commit), `abgebrochen`, `erneut abgebrochen` (the step already carried `✗` at the start), `angehalten vor Umsetzung — <Grund>` (abort in section 2; the plan stays unmarked, as in a single-step run), `angehalten — Schritt im Lauf umgeschrieben, bitte prüfen`, `entfallen` (section 6 removed it during the run), `nicht begonnen`, `neu im Lauf — nicht begonnen` (section 6 added it during the run). Every step of the starting queue gets a row, and so does every step added during the run. The SHA before the run is `git rev-parse --short HEAD`, noted right after the precheck, before the first step; the way back in each step's round report only holds as long as no later commit followed it, so the run report names the one for the whole run. The SHAs come from the `Commit:` line of each step's latest entry in the plan's `## Umsetzungs-Historie` — a retried step has several —, found by Grep, not from memory. Below the table, list every path that a step of the run left under "Nicht zugeordnet": the next step's starting state absorbs them, so this is the only place they still show up.
 
 The run is long. If, after many steps, you are unsure about a detail of these instructions, read `${CLAUDE_SKILL_DIR}/SKILL.md` again instead of reconstructing it from memory.
 
@@ -186,7 +207,7 @@ If no such skill is on the list or the invocation fails, the fallback applies on
 
 Afterwards `git rev-parse --short HEAD` and the subject for the `Commit:` line. The way back is `git reset --soft HEAD~1`; it keeps the changes in the index, and it goes in the report. You never push, never create a branch, never stash — that is the human's decision, as with a rebase.
 
-**Follow-up question.** If the default branch is unknown — no `<remote>/HEAD`, no `main`, no `master` — you do not commit on your own. First update the plan as for "no commit" with the reason "Default-Branch nicht erkennbar, Rückfrage offen", output the report, and then, as the very last thing, ask whether the checked-out branch is the default branch and whether to commit. On a yes, you stage, simplify and commit as above, change the `Commit:` line in the history to the SHA, and output an addendum to the report. If no answer comes, it stays at the updated plan without a commit. The question comes at the end and not already in section 1, so that implementation and plan are finished before the run waits for an answer.
+**Follow-up question.** If the default branch is unknown — no `<remote>/HEAD`, no `main`, no `master` — you do not commit on your own. First update the plan as for "no commit" with the reason "Default-Branch nicht erkennbar, Rückfrage offen", output the report, and then, as the very last thing, ask whether the checked-out branch is the default branch and whether to commit. On a yes, you stage, simplify and commit as above, change the `Commit:` line in the history to the SHA, and output an addendum to the report. If no answer comes, it stays at the updated plan without a commit. The question comes at the end and not already in section 1, so that implementation and plan are finished before the run waits for an answer. Without a step argument, the precheck asks it instead (see "Precheck"), because a question after every step would halt the run after the first one; a "yes" there is the answer for every step of the run — commit as usual, and record no open question.
 
 ## 6. Update the plan
 
