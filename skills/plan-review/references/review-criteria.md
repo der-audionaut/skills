@@ -58,12 +58,17 @@ For each dimension: does it apply? If so, what evidence in the code or in the pl
 
 ## Behavior preservation (plans with problem areas)
 Applies when the plan has a `## Problemfelder` section; otherwise skip. A question prefixed with „Bei `## …`:" (with `## …`) applies only when the plan has that section — what the plan does not have, you do not check, even if a step looks like it in substance.
-- Does every step have the `**Verhaltensschutz:**` (behavior guard) bullet? A grep with line numbers for `^## |^### Schritt |^- \*\*(Verhaltensschutz|Messung):\*\*` shows it: under `## Schritte`, every step heading is followed by exactly one Verhaltensschutz hit and, with `## Zielwerte`, exactly one Messung hit; strategies and history do not count. A step without behavior guard is a blocker.
+- Does every step have the `**Verhaltensschutz:**` (behavior guard) bullet? Run the grep with line numbers for `^## |^### Schritt |^- \*\*(Verhaltensschutz|Messung):\*\*` and count from its output, not from reading — a missing bullet between long step texts is easy to read past. Under `## Schritte`, every step heading is followed by exactly one Verhaltensschutz hit before the next heading and, with `## Zielwerte`, exactly one Messung hit; strategies and history do not count. A step without behavior guard is a blocker, and the grep output is its evidence.
 - Do the named tests exist (evidence from factual accuracy), or is the move preceded by a characterization-test step in an earlier wave?
 - Does a strategy or a step change observable behavior — API, output, persistence, ordering?
 - Does every finding of severity `Hoch` have a strategy, or does the reason with which it stands under the non-goals hold?
 - Bei `## Zielarchitektur`: Do its dependencies point inward, or is every exception named and justified (framework base classes, Active Record), and does the step sequence reach the target architecture?
 - Bei `## Zielwerte`: Does the `**Messung:**` bullet of every step whose `**Betroffen:**` names a file from `### Hot Paths` point to a row of the target values, otherwise to „keine" (none) with a reason? Does every row of the target values carry a measurement command or „nicht gemessen" (not measured), and does a step with its own before-value name the step that produced it? A hot-path step without measurement is a blocker.
+
+## Frontend plans (plans with a component architecture)
+Applies when the plan has a `## Komponentenarchitektur` section; otherwise skip.
+- Does every step have the `**Zustände:**` (states) bullet? Run the grep with line numbers for `^## |^### Schritt |^- \*\*Zustände:\*\*` and count from its output, not from reading — a missing bullet between long step texts is easy to read past. Under `## Schritte`, every step heading is followed by exactly one Zustände hit before the next heading; catalogue and history do not count. A step without it is a blocker, and the grep output is its evidence; a step without UI carries „keine" (none) with a reason.
+- Do the states a step names exist in the catalogue entry of its `K`, and does its accessibility check point to a criterion of the standard under `### Maßstab Barrierefreiheit`?
 
 ## Operations
 - Feature flag or direct rollout? Who switches it, by which criterion?
