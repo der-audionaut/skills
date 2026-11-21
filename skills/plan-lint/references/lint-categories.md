@@ -16,7 +16,7 @@ The hallmark is always: the statement describes a state that no longer exists or
 - **Orphaned context.** A section that no step and no decision uses anymore, because that part of the feature was dropped.
 - **Outdated descriptions of state.** "Aktuell macht das der Legacy-Service" (currently the legacy service does this) — where the legacy service was replaced in step 1.
 
-**Not dead knowledge:** rationales, rejected alternatives with rationale, non-goals, risks, open questions to the human, requirements without a corresponding step (that is a gap and gets reported, not deleted), plan-internal references into nothing — a step number, a `W<n>` or a `P<n>` that does not exist (that is numbering, see I, and stays).
+**Not dead knowledge:** rationales, rejected alternatives with rationale, non-goals, risks, open questions to the human, requirements without a corresponding step (that is a gap and gets reported, not deleted), plan-internal references into nothing — a step number, a `W<n>`, a `P<n>`, an `H<n>` or an `R<n>` that does not exist (that is numbering, see I, and stays); in a debugging plan the analysis — `## Fehlerbild und Reproduktion`, `## Ursachenanalyse` with every hypothesis including the rejected ones, and the current-behavior column of `## Randfälle` — describes the state before the fix by design and stays after the fix is implemented; so does the bullet „Nach der Diagnose" under `## Lösung`, which no step of the plan uses because the follow-up plan takes it over.
 
 ---
 
@@ -26,9 +26,10 @@ Hallmark: the same thing, represented differently. Both places may be meant corr
 
 - **Naming.** `invoice_status` / `billingState` / "Rechnungsstatus" for one field. Cross-check with code and `CONTEXT.md`.
 - **Types and formats.** Field as integer in the schema section, as string in the API. Timestamps sometimes with, sometimes without time zone.
-- **Numbering and ordering.** Steps that jump after an insertion; references to "step 4" that is now step 5, or to a `P<n>` that does not exist under `## Problemfelder`. Unify only when the target is unambiguous, otherwise present it and leave it — the reference may indicate a missing problem area.
+- **Numbering and ordering.** Steps that jump after an insertion; references to "step 4" that is now step 5, or to a `P<n>`, `H<n>` or `R<n>` missing from `## Problemfelder`, `### Hypothesen` or `## Randfälle`. Unify only when the target is unambiguous, otherwise present it and leave it — the reference may indicate a missing entry.
 - **Problem areas** (refactoring plans). A `P` without strategy and without non-goal — present, do not delete: the strategy or the reason is missing.
 - **Components** (frontend plans). A `K` with status `neu` or `erweitert` under `## Komponentenkatalog` that no step builds — present, do not delete: the step or the reason is missing.
+- **Hypotheses and edge cases** (debugging plans, recognizable by `## Ursachenanalyse` or its translation; section names and status words count in the plan's language). An `H` without status `bestätigt`, `verworfen` or `offen`; an `R` whose `Abdeckung` cell names neither a step nor `Nicht-Ziel` with a reason — present, do not delete.
 - **Granularity.** One step in five sub-points, the next as one sentence — a hint that the second one has not been thought through.
 - **Register.** Domain term here, technical synonym there, for the same concept.
 - **Structure.** Steps with acceptance criterion and steps without, in the same plan.
@@ -46,7 +47,7 @@ Hallmark: the two statements cannot both be true. Always quote both locations.
 - **Source of truth.** Two sections that describe different systems as authoritative.
 - **Numeric values.** Validity durations, limits, page sizes, time windows stated differently in two places.
 - **Ordering.** Step A requires step B, while according to the plan B comes after A.
-- **Scope.** Something is in the non-goals or excluded by a commitment of the plan — such as „Verhalten bleibt unverändert" (behavior stays unchanged) or „kein Refactoring-Gegenstand" (not subject to refactoring) — and reappears as a task in a step.
+- **Scope.** Something is in the non-goals or excluded by a commitment of the plan — such as „Verhalten bleibt unverändert" (behavior stays unchanged) or „kein Refactoring-Gegenstand" (not subject to refactoring) — and reappears as a task in a step. In a debugging plan the commitment is that only the faulty behavior from `## Ursachenanalyse` is fixed — its root cause, the similar places listed there, the boundary validation and the data repair under `## Lösung`, the edge-case steps from `## Randfälle`, a diagnosis step and the removal of its logging: a step that refactors or optimizes beside it contradicts it.
 - **Against documented decisions.** The plan contradicts an ADR or a decision from the `## Review-Historie` without naming the break.
 
 ---
